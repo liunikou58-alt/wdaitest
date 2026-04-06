@@ -1,0 +1,16 @@
+﻿node_modules
+dist
+*.log
+.env
+.DS_Store
+client/node_modules
+client/dist
+data/*.db
+uploads/*
+!uploads/.gitkeep
+wdmc-erp/
+wddata/
+erpone/
+*.exe
+*.pdf
+*.html
