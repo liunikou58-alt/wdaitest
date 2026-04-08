@@ -161,27 +161,47 @@ async function _callAI_inner(prompt, options, apiKey, keyLabel) {
       ? `${options.systemPrompt}\n\n${prompt}`
       : prompt;
 
-    const timeoutMs = options.timeout || 180000;  // 加長到 3 分鐘（因為可能排隊）
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Gemini 回應超時 (${timeoutMs / 1000}秒)`)), timeoutMs)
-    );
+    const timeoutMs = options.timeout || 180000;  // 3 分鐘
 
-    const res = await Promise.race([
-      geminiModel.generateContent({
-        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        generationConfig: { temperature, maxOutputTokens: maxTokens },
-      }),
-      timeoutPromise,
-    ]);
+    // === 改用直接 REST API 呼叫（繞過 SDK 的網路層）===
+    const restUrl = `https://generativelanguage.googleapis.com/v1beta/models/${useModel}:generateContent?key=${apiKey}`;
+    const restBody = JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+      generationConfig: { temperature, maxOutputTokens: maxTokens },
+    });
 
-    const text = res.response.text();
-    const candidate = res.response.candidates?.[0];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    let fetchResp;
+    try {
+      fetchResp = await fetch(restUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: restBody,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!fetchResp.ok) {
+      const errText = await fetchResp.text();
+      console.error(`[AI:${keyLabel}] REST API error ${fetchResp.status}: ${errText.substring(0, 300)}`);
+      const err = new Error(`Gemini API ${fetchResp.status}: ${errText.substring(0, 200)}`);
+      err.status = fetchResp.status;
+      throw err;
+    }
+
+    const resJson = await fetchResp.json();
+    const candidate = resJson.candidates?.[0];
+    const text = candidate?.content?.parts?.[0]?.text || '';
     const finishReason = candidate?.finishReason || 'unknown';
 
     const result = {
       content: text,
       model: 'gemini',
-      modelName,
+      modelName: useModel,
       tokens: text.length,
       finishReason,
       keyLabel,
@@ -218,19 +238,26 @@ async function _callAI_inner(prompt, options, apiKey, keyLabel) {
     stats.errors++;
 
     // 503 / 429 → 指數退避重試（放慢速率，一定要生成出來）
-    const isRetryable = err.message?.includes('429')
-      || err.message?.includes('RESOURCE_EXHAUSTED')
-      || err.message?.includes('rate')
-      || err.message?.includes('503')
-      || err.message?.includes('Service Unavailable')
-      || err.message?.includes('high demand')
-      || err.message?.includes('overloaded');
+    const errMsg = err.message || '';
+    const errStatus = err.status || 0;
+    const isRetryable = errMsg.includes('429')
+      || errMsg.includes('RESOURCE_EXHAUSTED')
+      || errMsg.includes('rate')
+      || errMsg.includes('503')
+      || errMsg.includes('Service Unavailable')
+      || errMsg.includes('high demand')
+      || errMsg.includes('overloaded')
+      || errMsg.includes('AbortError')
+      || errMsg.includes('abort')
+      || errStatus === 429
+      || errStatus === 503
+      || errStatus === 500;
 
     if (isRetryable && _retryAttempt < MAX_RETRIES) {
       stats.retries++;
       // 退避間隔：5s → 10s → 15s → 20s → 25s → 30s → 30s → 30s
       const waitSec = Math.min(5 + _retryAttempt * 5, 30);
-      console.log(`[AI:${keyLabel}] ⏳ 重試 ${_retryAttempt + 1}/${MAX_RETRIES}，等待 ${waitSec} 秒...`);
+      console.log(`[AI:${keyLabel}] ⏳ 重試 ${_retryAttempt + 1}/${MAX_RETRIES}，等待 ${waitSec} 秒... (${errMsg.substring(0, 100)})`);
       await new Promise(r => setTimeout(r, waitSec * 1000));
       return _callAI_inner(prompt, { ...options, _retryAttempt: _retryAttempt + 1 }, apiKey, keyLabel);
     }
