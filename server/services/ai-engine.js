@@ -1,45 +1,85 @@
 /**
- * AI 引擎管理器 — 三供應商架構
- * Provider 1: Google Gemini (推薦 — 文字+圖片+照片編輯，免費額度大)
- * Provider 2: Groq (Llama 4 Scout — 免費，速度極快)
- * Provider 3: OpenAI (GPT-4o — 付費，品質最高)
+ * AI 引擎管理器 — Gemini 2.5 Flash 多用戶版
  * 
- * 系統自動偵測可用的 API Key，客戶填哪個就用哪個
+ * 每位用戶擁有獨立的 Gemini API Key
+ * 6 組 Key 互不干擾，徹底避免限流問題
+ * 503 時指數退避重試（最多 5 次）
  */
 
-// ---- Provider 初始化 ----
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Google Gemini
-let geminiModel, geminiClient;
-try {
-  const { GoogleGenerativeAI } = require('@google/generative-ai');
-  if (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY) {
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-    geminiClient = new GoogleGenerativeAI(apiKey);
-    geminiModel = geminiClient.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    console.log('[AI] ✅ Google Gemini 已啟用');
-  }
-} catch { /* @google/generative-ai not installed */ }
+// ---- 多用戶 API Key 配置 ----
+const GEMINI_KEYS = [];
+for (let i = 1; i <= 10; i++) {
+  const key = process.env[`GEMINI_KEY_${i}`];
+  if (key) GEMINI_KEYS.push({ index: i, key });
+}
 
-// Groq
-let Groq, groqClient;
-try {
-  Groq = require('groq-sdk');
-  if (process.env.GROQ_API_KEY) {
-    groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    console.log('[AI] ✅ Groq 已啟用');
-  }
-} catch { /* Groq SDK not installed */ }
+// 全域 fallback key
+const GLOBAL_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+if (GLOBAL_KEY) {
+  console.log('[AI] ✅ 全域 Gemini API Key 已設定');
+}
 
-// OpenAI
-let openaiClient;
-try {
-  const OpenAI = require('openai');
-  if (process.env.OPENAI_API_KEY) {
-    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    console.log('[AI] ✅ OpenAI 已啟用');
+if (GEMINI_KEYS.length > 0) {
+  console.log(`[AI] ✅ ${GEMINI_KEYS.length} 組用戶專屬 Gemini Key 已載入`);
+} else if (GLOBAL_KEY) {
+  console.log('[AI] ⚠️  僅有全域 Key，所有用戶共用（建議設定 GEMINI_KEY_1 ~ GEMINI_KEY_6）');
+}
+
+if (!GLOBAL_KEY && GEMINI_KEYS.length === 0) {
+  console.error('[AI] ❌ 無任何 Gemini API Key！請在 .env 設定');
+}
+
+// ---- 模型快取（避免每次重建 client）----
+const clientCache = new Map();  // cacheKey → { client, model }
+
+const PRIMARY_MODEL = 'gemini-2.5-flash';
+const FALLBACK_MODEL = 'gemini-2.5-flash';  // 只有此模型可用，不降級
+const FALLBACK_AFTER_RETRIES = 99;  // 不自動降級（其他模型不可用）
+
+function getGeminiClient(apiKey, modelName = PRIMARY_MODEL) {
+  const cacheKey = `${apiKey}:${modelName}`;
+  if (clientCache.has(cacheKey)) return clientCache.get(cacheKey);
+  const client = new GoogleGenerativeAI(apiKey);
+  const model = client.getGenerativeModel({ model: modelName });
+  const entry = { client, model, modelName };
+  clientCache.set(cacheKey, entry);
+  return entry;
+}
+
+/**
+ * 根據 keyIndex 或 userId 取得對應的 API Key
+ * 優先順序：
+ *   1. keyIndex（從 JWT 直接取得，1:1 對應）
+ *   2. userId hash（fallback）
+ *   3. 全域 Key
+ */
+function resolveApiKey(keyIndex, userId) {
+  if (GEMINI_KEYS.length === 0) {
+    return { key: GLOBAL_KEY, label: 'global' };
   }
-} catch { /* OpenAI SDK not installed */ }
+
+  // 優先使用 keyIndex（直接對應，最精確）
+  if (keyIndex) {
+    const entry = GEMINI_KEYS.find(k => k.index === keyIndex);
+    if (entry) return { key: entry.key, label: `key-${entry.index}` };
+  }
+
+  // Fallback: userId hash
+  if (userId) {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+      hash |= 0;
+    }
+    const idx = Math.abs(hash) % GEMINI_KEYS.length;
+    return { key: GEMINI_KEYS[idx].key, label: `key-${GEMINI_KEYS[idx].index}` };
+  }
+
+  // 匿名 → 全域 Key
+  return { key: GLOBAL_KEY || GEMINI_KEYS[0].key, label: 'global' };
+}
 
 // 模型配置
 const MODELS = {
@@ -49,227 +89,161 @@ const MODELS = {
     model: 'gemini-2.5-flash',
     layer: 1,
     speed: '極快',
-    cost: '免費額度大',
-    quality: '⭐⭐⭐⭐',
-    description: '中文最佳，文字+圖片+照片編輯全支援',
-    available: !!geminiModel,
+    cost: '付費版',
+    quality: '⭐⭐⭐⭐⭐',
+    description: 'Gemini 2.5 Flash — 唯一指定模型，每用戶獨立 Key',
+    available: !!(GLOBAL_KEY || GEMINI_KEYS.length > 0),
     capabilities: ['text', 'image_gen', 'image_edit'],
   },
-  groq: {
-    id: 'groq',
-    name: 'Groq Llama 4 Scout',
-    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-    layer: 1,
-    speed: '極快',
-    cost: '免費',
-    quality: '⭐⭐⭐',
-    description: '日常分析、快速問答',
-    available: !!groqClient,
-    capabilities: ['text'],
-  },
-  'gpt-4o-mini': {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    model: 'gpt-4o-mini',
-    layer: 2,
-    speed: '快',
-    cost: '低 (~$0.15/100K)',
-    quality: '⭐⭐⭐⭐',
-    description: '深度分析、趨勢報告',
-    available: !!openaiClient,
-    capabilities: ['text'],
-  },
-  'gpt-4o': {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    model: 'gpt-4o',
-    layer: 3,
-    speed: '中',
-    cost: '中 (~$2.50/100K)',
-    quality: '⭐⭐⭐⭐⭐',
-    description: '企劃書生成、專業提案',
-    available: !!openaiClient,
-    capabilities: ['text'],
-  },
 };
 
-// 使用量追蹤
-const usage = {
-  gemini: { calls: 0, tokens: 0, errors: 0 },
-  groq: { calls: 0, tokens: 0, errors: 0 },
-  'gpt-4o-mini': { calls: 0, tokens: 0, errors: 0 },
-  'gpt-4o': { calls: 0, tokens: 0, errors: 0 },
-};
+// 使用量追蹤（per key）
+const usage = {};
+function getUsage(label) {
+  if (!usage[label]) usage[label] = { calls: 0, tokens: 0, errors: 0, retries: 0 };
+  return usage[label];
+}
+
+// ---- Per-Key 請求排隊（避免同一 Key 同時發多請求觸發 503）----
+const keyQueues = new Map();  // keyLabel → Promise chain
+const COOLDOWN_MS = 1500;     // 每次請求間隔 1.5 秒
+
+function enqueue(keyLabel, fn) {
+  const prev = keyQueues.get(keyLabel) || Promise.resolve();
+  const next = prev.then(() => fn()).catch(e => { throw e; }).finally(() => {
+    // 完成後加冷卻間隔
+    return new Promise(r => setTimeout(r, COOLDOWN_MS));
+  });
+  keyQueues.set(keyLabel, next.catch(() => {}));  // 不讓隊列因錯誤斷鏈
+  return next;
+}
 
 /**
- * 呼叫 AI — 自動選擇可用的 provider
- * 新增：截斷自動重試、空回應偵測、品質評估
+ * 呼叫 AI — 自動排隊 + 重試
+ * 外層：排隊（同 Key 不並行）
+ * 內層：503 指數退避重試
  */
 async function callAI(prompt, options = {}) {
-  const channel = options.model || autoRoute(options.taskType || 'chat');
-  if (!channel) throw new Error('沒有可用的 AI 模型，請在 .env 設定 GOOGLE_API_KEY、GROQ_API_KEY 或 OPENAI_API_KEY');
+  const { key: apiKey, label: keyLabel } = resolveApiKey(options.keyIndex, options.userId);
+  if (!apiKey) {
+    throw new Error('Gemini 未設定！請在 .env 設定 GOOGLE_API_KEY 或 GEMINI_KEY_1~6');
+  }
 
-  const config = MODELS[channel];
-  if (!config) throw new Error(`Unknown model: ${channel}`);
+  // 如果是重試中，不再排隊（已經在隊列裡了）
+  if (options._retryAttempt) {
+    return _callAI_inner(prompt, options, apiKey, keyLabel);
+  }
 
+  // 首次呼叫：排入該 Key 的隊列
+  return enqueue(keyLabel, () => _callAI_inner(prompt, options, apiKey, keyLabel));
+}
+
+/**
+ * 內部 AI 呼叫（含重試邏輯）
+ */
+async function _callAI_inner(prompt, options, apiKey, keyLabel) {
+  const _retryAttempt = options._retryAttempt || 0;
+  const MAX_RETRIES = 8;  // 放慢速率後可以多試幾次
+
+  const { model: geminiModel, modelName } = getGeminiClient(apiKey, PRIMARY_MODEL);
   const temperature = options.temperature || 0.3;
   const maxTokens = options.maxTokens || 8192;
-  const _retryAttempt = options._retryAttempt || 0;  // 內部重試計數
+  const stats = getUsage(keyLabel);
 
   try {
-    let result;
+    const fullPrompt = options.systemPrompt
+      ? `${options.systemPrompt}\n\n${prompt}`
+      : prompt;
 
-    if (channel === 'gemini') {
-      if (!geminiModel) throw new Error('Gemini not configured (set GOOGLE_API_KEY)');
-      const fullPrompt = options.systemPrompt
-        ? `${options.systemPrompt}\n\n${prompt}`
-        : prompt;
+    const timeoutMs = options.timeout || 180000;  // 加長到 3 分鐘（因為可能排隊）
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Gemini 回應超時 (${timeoutMs / 1000}秒)`)), timeoutMs)
+    );
 
-      // Gemini 2.5 思考模型可能需要較長時間，設定 120 秒 timeout
-      const timeoutMs = options.timeout || 120000;
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error(`Gemini 回應超時 (${timeoutMs/1000}秒)`)), timeoutMs)
-      );
+    const res = await Promise.race([
+      geminiModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+        generationConfig: { temperature, maxOutputTokens: maxTokens },
+      }),
+      timeoutPromise,
+    ]);
 
-      const res = await Promise.race([
-        geminiModel.generateContent({
-          contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-          generationConfig: { temperature, maxOutputTokens: maxTokens },
-        }),
-        timeoutPromise,
-      ]);
+    const text = res.response.text();
+    const candidate = res.response.candidates?.[0];
+    const finishReason = candidate?.finishReason || 'unknown';
 
-      const text = res.response.text();
-      const candidate = res.response.candidates?.[0];
-      const finishReason = candidate?.finishReason || 'unknown';
-      
-      result = {
-        content: text,
-        model: channel,
-        tokens: text.length, // Gemini doesn't always return token count
-        finishReason,
-      };
-      
-      // 截斷警告
-      if (finishReason === 'MAX_TOKENS' || finishReason === 'SAFETY') {
-        console.warn(`[AI:${channel}] ⚠️ 回應被截斷! finishReason=${finishReason}, maxTokens=${maxTokens}`);
-      }
+    const result = {
+      content: text,
+      model: 'gemini',
+      modelName,
+      tokens: text.length,
+      finishReason,
+      keyLabel,
+    };
 
-    } else if (channel === 'groq') {
-      if (!groqClient) throw new Error('Groq not configured (set GROQ_API_KEY)');
-      const messages = [];
-      if (options.systemPrompt) messages.push({ role: 'system', content: options.systemPrompt });
-      messages.push({ role: 'user', content: prompt });
-
-      const res = await groqClient.chat.completions.create({
-        model: config.model, messages, temperature, max_tokens: maxTokens,
-      });
-      const finishReason = res.choices[0]?.finish_reason || 'unknown';
-      result = {
-        content: res.choices[0]?.message?.content || '',
-        model: channel,
-        tokens: (res.usage?.total_tokens) || 0,
-        finishReason,
-      };
-      
-      if (finishReason === 'length') {
-        console.warn(`[AI:${channel}] ⚠️ 回應被截斷! finishReason=length, maxTokens=${maxTokens}`);
-      }
-
-    } else {
-      // OpenAI (gpt-4o-mini or gpt-4o)
-      if (!openaiClient) throw new Error('OpenAI not configured (set OPENAI_API_KEY)');
-      const messages = [];
-      if (options.systemPrompt) messages.push({ role: 'system', content: options.systemPrompt });
-      messages.push({ role: 'user', content: prompt });
-
-      const res = await openaiClient.chat.completions.create({
-        model: config.model, messages, temperature, max_tokens: maxTokens,
-      });
-      const finishReason = res.choices[0]?.finish_reason || 'unknown';
-      result = {
-        content: res.choices[0]?.message?.content || '',
-        model: channel,
-        tokens: (res.usage?.total_tokens) || 0,
-        finishReason,
-      };
-      
-      if (finishReason === 'length') {
-        console.warn(`[AI:${channel}] ⚠️ 回應被截斷! finishReason=length, maxTokens=${maxTokens}`);
-      }
+    // 截斷警告
+    if (finishReason === 'MAX_TOKENS' || finishReason === 'SAFETY') {
+      console.warn(`[AI:${keyLabel}] ⚠️ 回應被截斷! finishReason=${finishReason}, maxTokens=${maxTokens}`);
     }
 
-    // === 回應品質檢測 ===
-    const isTruncated = result.finishReason === 'MAX_TOKENS' || result.finishReason === 'length';
-    const isEmpty = !result.content || result.content.trim().length < 50;
+    // 截斷自動重試
+    const isTruncated = finishReason === 'MAX_TOKENS';
+    if (isTruncated && _retryAttempt < 1) {
+      const newMaxTokens = Math.min(maxTokens * 2, 131072);
+      console.log(`[AI:${keyLabel}] 🔄 截斷重試: maxTokens ${maxTokens} → ${newMaxTokens}`);
+      return _callAI_inner(prompt, { ...options, maxTokens: newMaxTokens, _retryAttempt: _retryAttempt + 1 }, apiKey, keyLabel);
+    }
 
     // 空回應偵測
-    if (isEmpty) {
-      console.warn(`[AI:${channel}] ⚠️ 回應過短或空白! 長度=${(result.content || '').length}`);
+    if (!text || text.trim().length < 50) {
+      console.warn(`[AI:${keyLabel}] ⚠️ 回應過短! 長度=${(text || '').length}`);
     }
 
-    // 截斷自動重試（最多重試 1 次，加倍 maxTokens）
-    if (isTruncated && _retryAttempt < 1) {
-      const newMaxTokens = Math.min(maxTokens * 2, 131072);  // 上限 128K
-      console.log(`[AI:${channel}] 🔄 截斷重試: maxTokens ${maxTokens} → ${newMaxTokens}`);
-      return callAI(prompt, {
-        ...options,
-        maxTokens: newMaxTokens,
-        _retryAttempt: _retryAttempt + 1,
-      });
+    stats.calls++;
+    stats.tokens += result.tokens;
+    if (_retryAttempt > 0) {
+      console.log(`[AI:${keyLabel}] ✅ OK — ${result.tokens} tokens (經過 ${_retryAttempt} 次重試)`);
+    } else {
+      console.log(`[AI:${keyLabel}] ✅ OK — ${result.tokens} tokens`);
     }
-
-    usage[channel].calls++;
-    usage[channel].tokens += result.tokens;
-    console.log(`[AI:${channel}] OK — ${result.tokens} tokens, finishReason=${result.finishReason}`);
     return result;
 
   } catch (err) {
-    usage[channel].errors++;
-    console.error(`[AI:${channel}] Error:`, err.message);
+    stats.errors++;
 
-    // Gemini rate limit → 等待後重試一次（不直接降級到較弱模型）
-    const isRateLimit = err.message?.includes('429') || err.message?.includes('RESOURCE_EXHAUSTED') || err.message?.includes('rate');
-    if (channel === 'gemini' && isRateLimit && _retryAttempt < 1) {
-      const waitSec = 30;
-      console.log(`[AI:gemini] ⏳ Rate limit hit, waiting ${waitSec}s before retry...`);
+    // 503 / 429 → 指數退避重試（放慢速率，一定要生成出來）
+    const isRetryable = err.message?.includes('429')
+      || err.message?.includes('RESOURCE_EXHAUSTED')
+      || err.message?.includes('rate')
+      || err.message?.includes('503')
+      || err.message?.includes('Service Unavailable')
+      || err.message?.includes('high demand')
+      || err.message?.includes('overloaded');
+
+    if (isRetryable && _retryAttempt < MAX_RETRIES) {
+      stats.retries++;
+      // 退避間隔：5s → 10s → 15s → 20s → 25s → 30s → 30s → 30s
+      const waitSec = Math.min(5 + _retryAttempt * 5, 30);
+      console.log(`[AI:${keyLabel}] ⏳ 重試 ${_retryAttempt + 1}/${MAX_RETRIES}，等待 ${waitSec} 秒...`);
       await new Promise(r => setTimeout(r, waitSec * 1000));
-      return callAI(prompt, { ...options, model: 'gemini', _retryAttempt: 1 });
+      return _callAI_inner(prompt, { ...options, _retryAttempt: _retryAttempt + 1 }, apiKey, keyLabel);
     }
 
-    // 自動降級（修正：降級時限制 maxTokens 和 prompt 長度不超過目標模型上限）
-    if (channel === 'gemini') {
-      const truncatedPrompt = prompt.length > 28000 ? prompt.substring(0, 28000) + '\n\n...(文件過長已截斷)...' : prompt;
-      const fallbackOpts = { ...options, maxTokens: Math.min(maxTokens, 8192) };
-      if (groqClient) return callAI(truncatedPrompt, { ...fallbackOpts, model: 'groq' });
-      if (openaiClient) return callAI(prompt, { ...options, model: 'gpt-4o-mini' });
+    if (isRetryable) {
+      console.error(`[AI:${keyLabel}] ❌ 重試 ${MAX_RETRIES} 次仍失敗`);
+      throw new Error(`Gemini 暫時不可用（${keyLabel}，已等待超過 2 分鐘）。Google 伺服器繁忙，請稍後再試。`);
     }
-    if (channel === 'gpt-4o' && openaiClient) {
-      return callAI(prompt, { ...options, model: 'gpt-4o-mini' });
-    }
-    if (channel === 'gpt-4o-mini') {
-      const truncatedPrompt = prompt.length > 28000 ? prompt.substring(0, 28000) + '\n\n...(文件過長已截斷)...' : prompt;
-      const fallbackOpts = { ...options, maxTokens: Math.min(maxTokens, 8192) };
-      if (groqClient) return callAI(truncatedPrompt, { ...fallbackOpts, model: 'groq' });
-      if (geminiModel) return callAI(prompt, { ...options, model: 'gemini' });
-    }
-    if (channel === 'groq') {
-      if (geminiModel) return callAI(prompt, { ...options, model: 'gemini' });
-      if (openaiClient) return callAI(prompt, { ...options, model: 'gpt-4o-mini' });
-    }
-
+    
+    console.error(`[AI:${keyLabel}] ❌ Error:`, err.message);
     throw err;
   }
 }
 
 /**
- * 智慧路由 — 優先順序：Gemini > Groq > OpenAI
+ * 智慧路由
  */
 function autoRoute(taskType) {
-  // Gemini 優先（中文最好 + 免費額度大）
-  if (geminiModel) return 'gemini';
-  if (groqClient) return 'groq';
-  if (openaiClient) return 'gpt-4o-mini';
+  if (GLOBAL_KEY || GEMINI_KEYS.length > 0) return 'gemini';
   return null;
 }
 
@@ -279,7 +253,7 @@ function autoRoute(taskType) {
 function getAvailableModels() {
   return Object.values(MODELS).map(m => ({
     ...m,
-    usage: usage[m.id],
+    keyCount: GEMINI_KEYS.length || (GLOBAL_KEY ? 1 : 0),
   }));
 }
 
@@ -287,29 +261,38 @@ function getAvailableModels() {
  * 取得使用量統計
  */
 function getUsageStats() {
-  const totalCalls = Object.values(usage).reduce((s, u) => s + u.calls, 0);
-  const totalTokens = Object.values(usage).reduce((s, u) => s + u.tokens, 0);
-  const totalErrors = Object.values(usage).reduce((s, u) => s + u.errors, 0);
+  const allStats = Object.entries(usage).map(([label, u]) => ({ label, ...u }));
+  const totalCalls = allStats.reduce((s, u) => s + u.calls, 0);
+  const totalTokens = allStats.reduce((s, u) => s + u.tokens, 0);
+  const totalErrors = allStats.reduce((s, u) => s + u.errors, 0);
+  const totalRetries = allStats.reduce((s, u) => s + u.retries, 0);
 
   return {
-    models: Object.entries(usage).map(([id, u]) => ({
-      id, name: MODELS[id]?.name, ...u,
-    })),
-    totalCalls, totalTokens, totalErrors,
-    activeProvider: geminiModel ? 'Google Gemini' : groqClient ? 'Groq' : openaiClient ? 'OpenAI' : '無',
+    models: allStats,
+    totalCalls, totalTokens, totalErrors, totalRetries,
+    keyCount: GEMINI_KEYS.length || (GLOBAL_KEY ? 1 : 0),
+    activeProvider: 'Google Gemini 2.5 Flash',
   };
 }
 
 /**
- * 多輪對話
+ * 多輪對話 — 每用戶獨立 Key
  */
-async function chat(systemPrompt, userMessage, history = []) {
-  const channel = autoRoute('chat');
-  if (!channel) throw new Error('沒有可用的 AI 模型');
+async function chat(systemPrompt, userMessage, history = [], userId = null, keyIndex = null) {
+  const { key: apiKey, label: keyLabel } = resolveApiKey(keyIndex, userId);
+  if (!apiKey) throw new Error('Gemini 未設定');
 
-  try {
-    if (channel === 'gemini') {
-      // Gemini 多輪對話
+  // 排入該 Key 的隊列（避免並行觸發 503）
+  return enqueue(keyLabel, () => _chat_inner(systemPrompt, userMessage, history, apiKey, keyLabel));
+}
+
+async function _chat_inner(systemPrompt, userMessage, history, apiKey, keyLabel) {
+  const MAX_RETRIES = 8;
+  const stats = getUsage(keyLabel);
+  const { model: geminiModel } = getGeminiClient(apiKey, PRIMARY_MODEL);
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
       const chatHistory = history.slice(-20).map(h => ({
         role: h.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: h.content }],
@@ -326,43 +309,24 @@ async function chat(systemPrompt, userMessage, history = []) {
 
       const res = await chatSession.sendMessage(userMessage);
       const text = res.response.text();
-      usage.gemini.calls++;
-      usage.gemini.tokens += text.length;
-      console.log(`[AI:chat:gemini] OK`);
+      stats.calls++;
+      stats.tokens += text.length;
+      console.log(`[AI:chat:${keyLabel}] ✅ OK${attempt > 0 ? ` (重試 ${attempt} 次)` : ''}`);
       return text;
 
-    } else if (channel === 'groq') {
-      const messages = [{ role: 'system', content: systemPrompt }];
-      history.slice(-20).forEach(h => messages.push({ role: h.role, content: h.content }));
-      messages.push({ role: 'user', content: userMessage });
-
-      const res = await groqClient.chat.completions.create({
-        model: MODELS.groq.model, messages, temperature: 0.5, max_tokens: 1500,
-      });
-      const text = res.choices[0]?.message?.content || '';
-      usage.groq.calls++;
-      usage.groq.tokens += (res.usage?.total_tokens) || 0;
-      console.log(`[AI:chat:groq] OK`);
-      return text;
-
-    } else {
-      const config = MODELS[channel];
-      const messages = [{ role: 'system', content: systemPrompt }];
-      history.slice(-20).forEach(h => messages.push({ role: h.role, content: h.content }));
-      messages.push({ role: 'user', content: userMessage });
-
-      const res = await openaiClient.chat.completions.create({
-        model: config.model, messages, temperature: 0.5, max_tokens: 1500,
-      });
-      const text = res.choices[0]?.message?.content || '';
-      usage[channel].calls++;
-      usage[channel].tokens += (res.usage?.total_tokens) || 0;
-      console.log(`[AI:chat:${channel}] OK`);
-      return text;
+    } catch (err) {
+      const isRetryable = err.message?.includes('503') || err.message?.includes('429') || err.message?.includes('high demand') || err.message?.includes('RESOURCE_EXHAUSTED');
+      if (isRetryable && attempt < MAX_RETRIES) {
+        stats.retries++;
+        const waitSec = Math.min(5 + attempt * 5, 30);
+        console.log(`[AI:chat:${keyLabel}] ⏳ 重試 ${attempt + 1}/${MAX_RETRIES}，等待 ${waitSec} 秒...`);
+        await new Promise(r => setTimeout(r, waitSec * 1000));
+        continue;
+      }
+      stats.errors++;
+      console.error(`[AI:chat:${keyLabel}] ❌ Error:`, err.message);
+      throw err;
     }
-  } catch (err) {
-    console.error(`[AI:chat:${channel}] Error:`, err.message);
-    throw err;
   }
 }
 
@@ -370,16 +334,24 @@ async function chat(systemPrompt, userMessage, history = []) {
  * 取得圖片生成能力
  */
 function getImageProvider() {
-  if (geminiModel) return 'gemini';
-  if (openaiClient) return 'openai';
+  if (GLOBAL_KEY || GEMINI_KEYS.length > 0) return 'gemini';
   return null;
 }
 
 /**
- * 取得 Gemini client（給 image-gen 用）
+ * 取得 Gemini client（指定用戶）
  */
-function getGeminiClient() {
-  return geminiClient;
+function getGeminiClientForUser(userId) {
+  const { key } = resolveApiKey(userId);
+  if (!key) return null;
+  return getGeminiClient(key).client;
+}
+
+// 向後相容
+function getGeminiClient_legacy() {
+  const key = GLOBAL_KEY || (GEMINI_KEYS.length > 0 ? GEMINI_KEYS[0].key : null);
+  if (!key) return null;
+  return getGeminiClient(key).client;
 }
 
 module.exports = {
@@ -389,6 +361,7 @@ module.exports = {
   getAvailableModels,
   getUsageStats,
   getImageProvider,
-  getGeminiClient,
+  getGeminiClient: getGeminiClient_legacy,
+  getGeminiClientForUser,
   MODELS,
 };

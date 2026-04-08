@@ -56,7 +56,7 @@ ${subContext}
 - 回覆使用繁體中文，保持專業但友善的語氣
 - 回覆不要太長，200-400字左右即可除非內容確實需要更長`;
 
-    const result = await aiEngine.chat(systemPrompt, question, messages);
+    const result = await aiEngine.chat(systemPrompt, question, messages, req.user?.id, req.user?.gemini_key_index);
 
     res.json({
       answer: result,

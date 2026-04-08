@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>WDAITEST AI 推理引擎技術報告書</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;color:#1a1a2e;line-height:1.8;background:#fff}
+@media print{body{font-size:11pt}h1{font-size:22pt}h2{font-size:16pt}h3{font-size:13pt}.page-break{page-break-before:always}.no-break{page-break-inside:avoid}}
+@page{size:A4;margin:20mm 18mm}
+
+/* Cover */
+.cover{height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 40%,#0f3460 100%);color:#fff;text-align:center;page-break-after:always}
+.cover h1{font-size:36pt;font-weight:900;letter-spacing:2px;margin-bottom:12px}
+.cover .subtitle{font-size:16pt;font-weight:300;color:#a5b4fc;margin-bottom:40px}
+.cover .meta{font-size:11pt;color:#94a3b8;line-height:2}
+.cover .logo{font-size:48pt;margin-bottom:20px;opacity:.7}
+
+/* Content */
+.content{max-width:780px;margin:0 auto;padding:30px 0}
+h1{font-size:22pt;color:#1e1b4b;border-bottom:3px solid #6366f1;padding-bottom:8px;margin:40px 0 20px}
+h2{font-size:16pt;color:#312e81;margin:30px 0 14px;padding-left:14px;border-left:4px solid #6366f1}
+h3{font-size:13pt;color:#4338ca;margin:20px 0 10px}
+p,li{font-size:10.5pt;line-height:1.9}
+ul,ol{padding-left:22px;margin:8px 0}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:10pt}
+th{background:#eef2ff;color:#312e81;font-weight:700;text-align:left;padding:8px 10px;border:1px solid #c7d2fe}
+td{padding:7px 10px;border:1px solid #e0e7ff;vertical-align:top}
+tr:nth-child(even) td{background:#f8fafc}
+
+/* Code / Prompt blocks */
+.prompt-block{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:14px 16px;margin:10px 0;font-size:9.5pt;line-height:1.7;white-space:pre-wrap;word-break:break-all;font-family:'Courier New',monospace;color:#334155;max-height:600px;overflow:auto}
+.prompt-label{display:inline-block;background:#6366f1;color:#fff;font-size:9pt;padding:2px 10px;border-radius:4px;margin-bottom:6px;font-weight:700}
+.flow-box{background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:12px 16px;margin:10px 0;font-size:10pt}
+.arch-box{background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:12px 16px;margin:10px 0;font-size:10pt}
+.note{background:#eff6ff;border-left:4px solid #3b82f6;padding:10px 14px;margin:10px 0;font-size:10pt;border-radius:0 6px 6px 0}
+
+/* TOC */
+.toc{margin:20px 0}
+.toc a{color:#4338ca;text-decoration:none;display:block;padding:4px 0;font-size:11pt}
+.toc a:hover{text-decoration:underline}
+.toc .sub{padding-left:24px;font-size:10pt;color:#6366f1}
+</style>
+</head>
+<body>
+
+<!-- ======== COVER ======== -->
+<div class="cover">
+  <div class="logo">AI</div>
+  <h1>WDAITEST</h1>
+  <div class="subtitle">AI 推理引擎技術報告書</div>
+  <div class="meta">
+    版本：v1.0<br>
+    產出日期：2026 年 4 月 4 日<br>
+    文件分類：內部技術文件<br>
+    涵蓋範圍：全應用 AI 推理邏輯與提示詞完整紀錄
+  </div>
+</div>
+
+<!-- ======== TOC ======== -->
+<div class="content">
+<h1>目錄</h1>
+<div class="toc">
+  <a>1. 系統總覽與 AI 架構</a>
+  <a class="sub">1.1 AI 供應商與路由機制</a>
+  <a class="sub">1.2 雙引擎架構（ai-provider / ai-engine）</a>
+  <a>2. AI 功能模組清單</a>
+  <a>3. 各模組 AI 推理邏輯與完整提示詞</a>
+  <a class="sub">3.1 科室深度情境引擎（Department Intelligence）</a>
+  <a class="sub">3.2 需求分析引擎（Analysis）</a>
+  <a class="sub">3.3 主題包裝引擎（Themes）— 三階段</a>
+  <a class="sub">3.4 殺手級亮點引擎（Highlights）</a>
+  <a class="sub">3.5 企劃書撰寫引擎（Proposal Writing）</a>
+  <a class="sub">3.6 執行建議引擎（Plan Summary）</a>
+  <a class="sub">3.7 成本估算引擎（Costs AI）</a>
+  <a class="sub">3.8 企劃書結構生成（Proposal）</a>
+  <a class="sub">3.9 場地規劃報告引擎（Venue Plan）</a>
+  <a class="sub">3.10 活動模擬圖生成（Image Gen）</a>
+  <a class="sub">3.11 AI 對話助手（AI Chat）</a>
+  <a class="sub">3.12 通用 AI 對話 / 企劃生成（AI Route）</a>
+  <a class="sub">3.13 標案匹配分析（Intel Match）</a>
+  <a class="sub">3.14 得標趨勢分析（Intel Trend）</a>
+  <a>4. 科室情報注入機制</a>
+  <a>5. 資料流架構圖</a>
+</div>
+
+<!-- ======== CH1 ======== -->
+<h1 class="page-break">1. 系統總覽與 AI 架構</h1>
+
+<h2>1.1 AI 供應商與路由機制</h2>
+<p>WDAITEST 採用多供應商自動降級架構，支援以下 AI 引擎：</p>
+<table>
+<tr><th>引擎</th><th>模型</th><th>用途</th><th>優先順序</th><th>費用</th></tr>
+<tr><td>Google Gemini</td><td>gemini-2.5-flash</td><td>文字 + 圖片生成 + 照片編輯</td><td>1（最優先）</td><td>免費額度大</td></tr>
+<tr><td>Groq</td><td>llama-4-scout-17b</td><td>文字生成、快速問答</td><td>2</td><td>免費</td></tr>
+<tr><td>Ollama（本地）</td><td>qwen3:8b</td><td>文字生成（離線可用）</td><td>2（本地優先時為 1）</td><td>免費</td></tr>
+<tr><td>OpenAI</td><td>gpt-4o / gpt-4o-mini</td><td>高品質文字生成</td><td>3</td><td>付費</td></tr>
+</table>
+
+<div class="arch-box">
+<strong>路由邏輯：</strong>系統啟動時偵測環境變數中的 API Key，優先使用 Gemini → Groq → OpenAI。任何引擎呼叫失敗時，自動降級到下一個可用引擎，確保零停機。
+</div>
+
+<h2>1.2 雙引擎架構</h2>
+<table>
+<tr><th>引擎檔案</th><th>用途</th><th>使用者</th></tr>
+<tr><td>server/ai-provider.js</td><td>Ollama + Groq 雙引擎（核心推理管線用）</td><td>analysis, themes, highlights, proposal-writing, dept-intel, costs, plan-summary, venue-plan</td></tr>
+<tr><td>server/services/ai-engine.js</td><td>Gemini + Groq + OpenAI 三引擎（通用 AI 對話用）</td><td>ai.js, ai-chat.js, image-gen.js</td></tr>
+</table>
+
+<!-- ======== CH2 ======== -->
+<h1 class="page-break">2. AI 功能模組清單</h1>
+<p>以下為 WDAITEST 中所有使用 AI 推理的功能模組，共 <strong>14 個 AI 觸點</strong>：</p>
+<table>
+<tr><th>#</th><th>模組名稱</th><th>檔案位置</th><th>觸發方式</th><th>輸出格式</th></tr>
+<tr><td>1</td><td>科室深度情境研究</td><td>services/dept-intelligence.js</td><td>建案時自動 / 手動</td><td>JSON（12 欄位情報卡）</td></tr>
+<tr><td>2</td><td>需求文件分析</td><td>routes/analysis.js</td><td>使用者按鈕</td><td>Markdown 報告</td></tr>
+<tr><td>3a</td><td>方向選擇題生成</td><td>routes/themes.js (Phase 1)</td><td>使用者按鈕</td><td>JSON（3 題 × 4 選項）</td></tr>
+<tr><td>3b</td><td>主題包裝方案生成</td><td>routes/themes.js (Phase 2)</td><td>使用者按鈕</td><td>Markdown（3 套方案）</td></tr>
+<tr><td>3c</td><td>子活動清單提取</td><td>routes/themes.js (Phase 3)</td><td>使用者按鈕</td><td>JSON 陣列</td></tr>
+<tr><td>3d</td><td>主題深化展開</td><td>routes/themes.js (expand)</td><td>使用者按鈕</td><td>JSON（5-6 子活動）</td></tr>
+<tr><td>4</td><td>殺手級亮點構想</td><td>routes/highlights.js</td><td>使用者按鈕</td><td>Markdown + JSON</td></tr>
+<tr><td>5</td><td>企劃書章節撰寫</td><td>routes/proposal-writing.js</td><td>逐子活動觸發</td><td>JSON（結構化章節）</td></tr>
+<tr><td>6</td><td>執行建議生成</td><td>routes/plan-summary.js</td><td>使用者按鈕</td><td>JSON</td></tr>
+<tr><td>7</td><td>成本估算建議</td><td>routes/costs.js</td><td>使用者按鈕</td><td>JSON 陣列</td></tr>
+<tr><td>8</td><td>企劃書結構生成</td><td>routes/proposal.js</td><td>使用者按鈕</td><td>JSON</td></tr>
+<tr><td>9</td><td>場地規劃報告</td><td>routes/image-gen.js (venue-plan)</td><td>使用者按鈕</td><td>Markdown 報告</td></tr>
+<tr><td>10</td><td>活動模擬圖 / 場地佈置</td><td>routes/image-gen.js</td><td>使用者按鈕</td><td>圖片（PNG/JPEG/SVG）</td></tr>
+<tr><td>11</td><td>AI 對話追問</td><td>routes/ai-chat.js</td><td>使用者即時對話</td><td>純文字</td></tr>
+<tr><td>12</td><td>通用 AI 對話</td><td>routes/ai.js</td><td>使用者即時對話</td><td>Markdown</td></tr>
+<tr><td>13</td><td>標案匹配度分析</td><td>routes/intel.js (match)</td><td>使用者按鈕</td><td>JSON（分數 + 建議）</td></tr>
+<tr><td>14</td><td>得標趨勢分析</td><td>routes/intel.js (trend)</td><td>使用者按鈕</td><td>JSON（趨勢 + 策略）</td></tr>
+</table>
+
+<!-- ======== CH3 ======== -->
+<h1 class="page-break">3. 各模組 AI 推理邏輯與完整提示詞</h1>
+
+<!-- 3.1 -->
+<h2>3.1 科室深度情境引擎</h2>
+<div class="no-break">
+<h3>觸發邏輯</h3>
+<ul>
+  <li><strong>自動觸發：</strong>建案時若填寫了「機關」或「公司」欄位，系統在回傳 201 後非同步呼叫 <code>researchDepartment()</code>，不阻塞使用者</li>
+  <li><strong>手動觸發：</strong>POST <code>/api/projects/:id/dept-intelligence</code></li>
+  <li><strong>輸出：</strong>12 欄位結構化 JSON 情報卡，存入 <code>dept_intelligence</code> 表</li>
+  <li><strong>AI 參數：</strong>temperature=0.5, max_tokens=4096, timeout=120s</li>
+</ul>
+</div>
+
+<h3>提示詞 A — 標案用（政府機關研究）</h3>
+<div class="prompt-label">PROMPT: buildResearchPrompt()</div>
+<div class="prompt-block">【任務】你是一位台灣政府機關組織研究專家。請根據以下機關與科室資訊，進行深度研究分析，產出一份「科室情報卡」。
+
+你必須基於你的訓練知識中關於台灣政府機關的資訊，推理分析該科室可能的業務職掌、過去活動案例、和創意方向。即使你不確定某些細節，也要根據機關名稱和科室名稱進行合理推理。
+
+機關名稱：${agency}
+科室名稱：${department || '(未指定科室，請針對整個機關分析)'}
+活動類型：${eventType || '(未指定)'}
+${extraContext ? '補充資訊：' + extraContext : ''}
+
+請嚴格以 JSON 格式輸出：
+{
+  "mission_summary": "核心業務職掌摘要（100-150字）",
+  "core_programs": ["核心計畫/政策名稱（至少4-6個）"],
+  "target_audience": {
+    "primary": "主要服務對象",
+    "secondary": "次要參與對象",
+    "decision_makers": "內部決策鏈"
+  },
+  "key_issues": ["領域核心議題/痛點（至少4個）"],
+  "past_events_reference": ["過去活動案例（至少4個）"],
+  "international_benchmarks": ["國際標竿做法（至少3-4個）"],
+  "evaluation_focus": ["評審重視要素（至少4項）"],
+  "creative_directions": ["創意發想方向建議（至少4個）"],
+  "sensitive_terms": ["用詞禁忌/建議（至少3個）"],
+  "domain_keywords": ["專業術語/關鍵詞（至少6個）"],
+  "budget_reference": {
+    "typical_range": "常見預算範圍",
+    "cost_sensitive_items": ["注意費用項目"]
+  }
+}</div>
+
+<h3>提示詞 B — 商案用（企業研究）</h3>
+<div class="prompt-label">PROMPT: buildCompanyResearchPrompt()</div>
+<div class="prompt-block">【任務】你是一位台灣企業研究分析師。請根據以下公司與產業資訊，進行深度研究分析，產出一份「企業情報卡」。
+
+公司名稱：${company}
+公司產業：${industry || '(未指定)'}
+活動類型：${eventType || '(未指定)'}
+
+（JSON 輸出結構同上，但欄位內容改為企業導向）</div>
+
+<h3>情報注入格式</h3>
+<p><code>formatIntelForPrompt()</code> 將 JSON 情報卡轉換為可讀文字，注入到後續所有 AI prompt 中：</p>
+<div class="prompt-block">=== 科室/單位深度情報 ===
+【單位業務職掌】...
+【核心計畫/政策】- ...
+【目標受眾】- 主要對象：... / 次要對象：... / 決策鏈：...
+【領域核心痛點/議題】- ...
+【過去活動案例參考】- ...
+【國際標竿做法】- ...
+【評審/決策者重視要素】- ...
+【建議創意發想方向】- ...
+【用語注意事項】- ...
+【領域專業術語】...
+【預算參考】...</div>
+
+<!-- 3.2 -->
+<h2 class="page-break">3.2 需求分析引擎</h2>
+<div class="no-break">
+<h3>觸發邏輯</h3>
+<ul>
+  <li><strong>觸發：</strong>使用者上傳 PDF 需求書後按「AI 分析」</li>
+  <li><strong>輸入：</strong>PDF 全文提取（最多 60,000 字元）</li>
+  <li><strong>輸出：</strong>Markdown 結構化分析報告</li>
+  <li><strong>AI 參數：</strong>temperature=0.2, max_tokens=8192, timeout=180s</li>
+</ul>
+</div>
+
+<h3>提示詞 — 標案版</h3>
+<div class="prompt-label">PROMPT: 標案分析</div>
+<div class="prompt-block">你是一位台灣的資深政府標案分析師。請仔細閱讀以下需求說明書，為投標廠商撰寫一份完整、深入的分析報告。
+
+機關：${agency}  科室：${department}
+活動類型：${eventType}  活動日期：${eventDate}
+
+請用 Markdown 格式撰寫分析報告。嚴格遵守以下結構：
+### 專案大綱與整體重點分析
+  - 活動目的 / 企劃與結案要求 / 報名系統 / 總預算區分
+### 每個活動需要的內容
+  #### 一、第一個活動名稱
+  - 時間地點 / 參賽資格 / 硬體軟體 / 人力配置 / 獎勵制度 / 醫護安全 / 紀錄產出
+### 我該注意的事項（廠商執行雷區）
+  1. 文宣法規嚴格限制 / 2. 勞動法規 / 3. 場地復原 / 4. 天氣備案 / 5. 合規性
+
+嚴格規則：繁體中文、無 emoji、具體深入、粗體標示關鍵數字
+
+以下是標案需求書內容："""${allText}"""</div>
+
+<h3>提示詞 — 商案版</h3>
+<p>結構類似，但角色改為「資深商業活動企劃分析師」，並增加「企劃方向建議」章節。</p>
+
+<!-- 3.3 -->
+<h2 class="page-break">3.3 主題包裝引擎（三階段）</h2>
+
+<h3>Phase 1：方向選擇題生成</h3>
+<div class="flow-box">
+<strong>流程：</strong>讀取 PDF 文件 → 組合專案上下文 + 科室情報 → AI 產出 3 組方向選擇題（每題 4 選項）→ 前端顯示 → PM 選擇方向
+</div>
+<div class="prompt-label">PROMPT: direction-questions</div>
+<div class="prompt-block">你是台灣的資深${isTender ? '政府活動' : '企業活動'}企劃創意總監。
+根據以下需求文件內容以及該單位的深度背景情報，產出 3 組「方向選擇題」
+
+每個問題必須：
+- 問題本身要具體，必須緊扣這個科室的業務領域和核心議題
+- 每題提供 4 個選項
+- 選項要有差異性，代表不同的創意走向
+- 選項的用詞要展現你對該領域的深度理解（使用專業術語、引用真實案例方向）
+
+${contextInfo}
+${deptIntelContext}  ← 【注入科室情報】
+
+嚴格以 JSON 陣列格式輸出：
+[{ "question": "...", "options": ["A", "B", "C", "D"] }]
+
+以下是需求文件原文："""${docText}"""</div>
+
+<h3>Phase 2：主題包裝方案生成</h3>
+<div class="flow-box">
+<strong>流程：</strong>Phase 1 選擇結果 + 風格偏好 + 科室情報 + 分析報告 → AI 產出 3 套完整主題包裝方案 → Markdown 報告
+</div>
+<div class="prompt-label">PROMPT: theme-generate（temperature=0.7）</div>
+<div class="prompt-block">【任務】你是台灣頂尖的活動企劃創意總監。為以下活動設計 3 套「主題包裝方案」。
+
+【最重要】你的創意必須深度紮根於這個科室/機關的核心業務和真實議題。
+不要產出泛用的「科技感/永續/文化」方案。主題必須讓人一看就知道是為「${department}」量身打造。
+
+${contextInfo} / ${directionBrief} / ${styleHint}
+${deptIntelContext}  ← 【注入科室情報】
+
+每套方案包含：
+### 方案一：「主題名稱——必須與該科室業務領域直接呼應」
+- Slogan（融入該領域專業語彙）
+- 核心敘事（100字+，說明如何回應科室核心議題）
+- 命名巧思 / 視覺識別方向 / 5 大創意觸點 / 為什麼能贏
+
+嚴格規則：繁體中文、無 emoji、三方案差異顯著、所有觸點須展現領域深度理解</div>
+
+<h3>Phase 3：子活動清單提取</h3>
+<div class="prompt-label">PROMPT: extract-activities（temperature=0.3）</div>
+<div class="prompt-block">以下是 3 套活動主題包裝方案的報告。請從每個方案中提取所有具體的子活動/創意項目。
+
+每個子活動需包含：name / description / effect / theme
+
+嚴格以 JSON 陣列格式輸出：
+[{ "name": "...", "description": "...", "effect": "...", "theme": "方案一：「XXX」" }]
+
+每個方案至少提取 5 個子活動。
+${reportText}</div>
+
+<!-- 3.4 -->
+<h2 class="page-break">3.4 殺手級亮點引擎</h2>
+<div class="no-break">
+<h3>觸發邏輯</h3>
+<ul>
+  <li><strong>輸入：</strong>已選子活動 + 主題方案 + 評選標準 + 科室情報</li>
+  <li><strong>輸出：</strong>6 個殺手級亮點構想（Markdown + JSON 雙重輸出）</li>
+  <li><strong>AI 參數：</strong>temperature=0.7, max_tokens=6000</li>
+</ul>
+</div>
+<div class="prompt-label">PROMPT: highlights-generate</div>
+<div class="prompt-block">【任務】你是台灣頂尖的活動企劃「亮點策略顧問」。
+根據已選定的子活動，發想 6 個「殺手級亮點構想」。
+
+【最重要】你的亮點必須深度與該科室/機關的核心業務和真實議題相關。
+不要產出泛用的「打卡牆/集章遊戲」。必須展現你對該領域的深度理解。
+
+${contextInfo} / 來自主題方案：${themeInfo} / 評選標準：${criteria}
+${deptIntelContext}  ← 【注入科室情報】
+
+已選取的子活動：${subActivitiesInfo}
+
+每個亮點包含：亮點名稱 / 對應子活動 / 創意構想 / 視覺描述 / 預估成本 / 評審加分點</div>
+
+<!-- 3.5 -->
+<h2 class="page-break">3.5 企劃書撰寫引擎</h2>
+<div class="no-break">
+<h3>觸發邏輯</h3>
+<ul>
+  <li><strong>觸發：</strong>逐子活動呼叫，每個子活動產出一章節</li>
+  <li><strong>輸入：</strong>子活動資訊 + 專案上下文 + 分析報告 + 科室情報</li>
+  <li><strong>輸出：</strong>結構化 JSON（含活動項目 / 時間表 / 獎勵計畫 / 硬體清單 / 人力配置 / 廠商推薦 / 預算明細）</li>
+  <li><strong>AI 參數：</strong>temperature=0.5, max_tokens=4000</li>
+</ul>
+</div>
+<div class="prompt-label">PROMPT: proposal-writing/generate</div>
+<div class="prompt-block">你是一位頂尖的${isTender ? '政府標案' : '企業活動'}企劃撰寫專家。
+請針對以下子活動，撰寫完整的企劃書章節內容。
+
+=== 活動基本資訊 ===
+活動名稱 / 活動類型 / 主辦單位 / 總預算 / 活動日期
+${deptIntelContext}  ← 【注入科室情報】
+
+=== 本子活動 ===
+名稱 / 來自主題方案 / 描述 / 預期效果
+
+=== 要求（JSON 格式）===
+{
+  "chapter_title": "章節標題",
+  "chapter_intro": "章節導言（80-120字）",
+  "activity_items": [{ "item_name", "description", "rules", "props_list", "core_message", "space_requirement", "staff" }],
+  "suggested_timeline": [{ "time", "content", "note" }],
+  "reward_plan": { "participation_rule", "rewards": [{ "item_name", "material", "size", "quantity", "estimated_price" }] },
+  "hardware_list": [{ "item", "spec", "quantity", "purpose" }],
+  "staff_plan": [{ "role", "count", "duty" }],
+  "recommended_vendors": [{ "category", "vendor_type", "search_keyword", "price_range" }],
+  "reference_cases": [{ "case_name", "organizer", "highlight", "search_keyword" }],
+  "budget_detail": [{ "item", "unit", "quantity", "unit_price", "subtotal" }],
+  "risk_notes": "注意事項",
+  "weather_backup": "雨備方案"
+}</div>
+
+<!-- 3.6 -->
+<h2>3.6 執行建議引擎</h2>
+<div class="prompt-label">PROMPT: plan-summary/suggestion（temperature=0.5, max_tokens=3000）</div>
+<div class="prompt-block">你是一位資深活動執行專家與企劃撰寫顧問。
+請針對以下子活動，提供完整、具體、可直接放入企劃書的執行內容。
+
+=== 活動基本資訊 ===（含整體架構、預算、日期）
+=== 本子活動詳情 ===（含名稱、描述、效果）
+
+=== 要求（JSON 格式）===
+{
+  "execution_direction": "執行大方向（50字內）",
+  "program_content": {
+    "概述": "企劃撰寫方向與目的",
+    "具體項目": [{ "項目名稱", "內容說明", "遊戲規則或流程", "所需設備", "人力配置" }]
+  },
+  "key_notes": "注意事項（100字內）"
+}</div>
+
+<!-- 3.7 -->
+<h2>3.7 成本估算引擎</h2>
+<div class="prompt-label">PROMPT: costs/ai-suggest（temperature=0.3）</div>
+<div class="prompt-block">你是一位資深活動企劃成本估算專家。根據以下標案需求分析結果，提出成本估算建議。
+
+需求摘要：預算 / 期程 / 地點 / 核心需求
+
+請以 JSON 陣列格式輸出建議的成本項目：
+[{ "category": "人事費", "item_name": "項目名稱", "unit": "人/天", "quantity": 5, "unit_price": 3000, "notes": "備註" }]
+
+成本類別：人事費、場地費、設備費、設計印刷費、交通住宿費、餐飲費、雜支、管理費</div>
+
+<!-- 3.8 -->
+<h2 class="page-break">3.8 企劃書結構生成</h2>
+<div class="prompt-label">PROMPT: proposal/generate（temperature=0.4）</div>
+<div class="prompt-block">你是一位資深政府標案企劃書撰寫專家。根據以下資料，為每個章節生成企劃書完整內容。
+
+專案名稱 / 招標機關 / 主題名稱 / Slogan / 核心需求 / 企劃亮點
+
+請產出結構化企劃書，JSON 格式：
+{
+  "cover": { "title": "封面標題", "subtitle": "副標題" },
+  "chapters": [{ "number": 1, "title": "章節標題", "content": "完整 300-500 字" }]
+}
+
+必須包含章節：專案理解 / 企劃主題 / 執行計畫 / 企劃亮點 / 執行團隊 / 經費預估 / 預期效益</div>
+
+<!-- 3.9 -->
+<h2>3.9 場地規劃報告引擎</h2>
+<div class="prompt-label">PROMPT: venue-plan（temperature=0.5, max_tokens=8192, timeout=180s）</div>
+<div class="prompt-block">【任務】你是台灣頂尖的活動場地規劃專家。撰寫完整的「活動場地佈圖規劃」報告。
+
+輸入：專案資訊 + 已選子活動 + 已選亮點 + 主題方案 + 分析報告 + 需求文件
+
+Markdown 結構嚴格遵守：
+# 活動會場佈圖規劃
+## 功能區域配置總覽
+## 硬體規劃（舞台設計 / 場地布置 / 報到區 / 燈光音響 / 電力）
+## 活動規劃（醫療服務 / 環境規劃 / 雨天備案 / 人力規劃 / 拍攝規劃）
+## 規劃索引總表</div>
+
+<!-- 3.10 -->
+<h2>3.10 活動模擬圖生成</h2>
+<h3>文字生成圖片</h3>
+<div class="prompt-label">PROMPT: image-gen（Gemini / DALL-E / Picsum fallback）</div>
+<div class="prompt-block">A professional event planning ${imageStyle} for: "${activity_name}".
+Context: This is for a ${event_type} in Taiwan.
+Style: Clean, modern, professional event illustration.
+No text, no watermarks, no logos. 4:3 aspect ratio, high quality.</div>
+
+<h3>照片疊加編輯（Gemini 專屬）</h3>
+<div class="prompt-label">PROMPT: photo-overlay</div>
+<div class="prompt-block">請在這張照片中加入以下裝飾佈置：${keywords}。
+保留原本的場地背景，在適當位置添加裝飾元素。效果要自然、專業、逼真。</div>
+
+<div class="note">圖片生成有 4 層 fallback 機制：Gemini Image → DALL-E 3 → Lorem Picsum 圖庫 → SVG Placeholder</div>
+
+<!-- 3.11 -->
+<h2 class="page-break">3.11 AI 對話追問助手</h2>
+<div class="prompt-label">SYSTEM PROMPT: ai-chat</div>
+<div class="prompt-block">你是 WDMC AI 活動企劃助手。以下是專案資訊：
+專案名稱 / 案件類型 / 機關或公司 / 活動類型 / 預算 / 活動日期
+目前討論的子活動：${subActivityName}
+
+用戶正在針對此活動項目向你追問更多細節。請提供精準、實用、具體的回答。
+- 推薦廠商/片單/攤販/資源時提供具體名稱和估價
+- 執行細節提供完整規劃說明
+- 繁體中文，200-400字</div>
+
+<!-- 3.12 -->
+<h2>3.12 通用 AI 對話 / 企劃生成</h2>
+<div class="prompt-label">SYSTEM PROMPT: ai/chat（通用對話）</div>
+<div class="prompt-block">你是 WDMC AI 助手，專精於政府標案、活動企劃、行銷策略。
+能力：標案搜尋匹配 / 競爭對手追蹤 / 企劃書撰寫 / 投標策略建議
+繁體中文、markdown 格式、具體專業。</div>
+
+<div class="prompt-label">SYSTEM PROMPT: ai/generate（企劃生成）</div>
+<div class="prompt-block">你是專業的活動企劃師，擅長撰寫政府標案企劃書。
+請產生完整、專業、格式嚴謹的內容。繁體中文。善用 markdown。</div>
+
+<!-- 3.13 -->
+<h2>3.13 標案匹配度分析</h2>
+<div class="prompt-label">PROMPT: intel/match（temperature=0.3, max_tokens=200）</div>
+<div class="prompt-block">你是一位標案匹配分析師。請評估以下標案與本公司的匹配程度。
+
+標案資訊：名稱 / 機關 / 預算 / 類別
+本公司關鍵能力：${companyKeywords}
+主要競爭對手：${competitors}
+
+回傳 JSON：
+{ "score": 0-100, "reason": "一句話原因（30字內）",
+  "threat": "競爭威脅（高/中/低）", "suggestion": "投標建議（30字內）" }</div>
+
+<!-- 3.14 -->
+<h2>3.14 得標趨勢分析</h2>
+<div class="prompt-label">PROMPT: intel/analyze-trend（temperature=0.3, max_tokens=300）</div>
+<div class="prompt-block">你是一位政府標案競爭分析師。分析以下決標歷史資料：
+${年份 - 標案名稱 - 得標廠商 - 金額 - 投標家數}
+
+我們的競爭對手：${competitors}
+
+回傳 JSON：
+{ "isFixed": true/false, "dominantVendor": "最常得標廠商",
+  "trend": "趨勢說明（50字）", "fairness": "高/中/低",
+  "recommendation": "投標策略建議（50字）",
+  "riskLevel": "高/中/低", "estimatedBudget": "預估下次預算" }</div>
+
+<!-- ======== CH4 ======== -->
+<h1 class="page-break">4. 科室情報注入機制</h1>
+
+<p>科室情報引擎是 WDAITEST 的核心差異化功能。它產出的情報卡會被自動注入到以下 4 個 AI 管線中：</p>
+
+<table>
+<tr><th>注入目標</th><th>注入方式</th><th>效果</th></tr>
+<tr><td>方向選擇題 (themes Phase 1)</td><td>prompt 中段注入完整情報</td><td>選擇題的問題和選項緊扣科室業務領域</td></tr>
+<tr><td>主題包裝 (themes Phase 2)</td><td>prompt 中段注入 + 額外指令</td><td>3 套主題方案上展現對該領域的深度理解</td></tr>
+<tr><td>殺手級亮點 (highlights)</td><td>prompt 中段注入 + 額外指令</td><td>6 個亮點構想與目標機關核心議題直接相關</td></tr>
+<tr><td>企劃書撰寫 (proposal-writing)</td><td>活動基本資訊區塊後注入</td><td>企劃書內容融入專業術語和領域知識</td></tr>
+</table>
+
+<div class="arch-box">
+<strong>注入位置統一格式：</strong>所有管線使用 <code>formatIntelForPrompt(projectId)</code> 函數將 12 欄位 JSON 情報卡轉換為帶有中括號標題的純文字段落，插入到 AI prompt 的上下文區域中。若情報卡尚未完成或不存在，注入內容為空字串，不影響原有流程。
+</div>
+
+<!-- ======== CH5 ======== -->
+<h1 class="page-break">5. 資料流架構圖</h1>
+
+<h2>完整 AI 管線流程</h2>
+<table>
+<tr><th>步驟</th><th>功能</th><th>輸入</th><th>AI 處理</th><th>輸出</th></tr>
+<tr><td>0</td><td>建案</td><td>機關 + 科室</td><td>科室深度研究（非同步）</td><td>12 欄位情報卡 JSON</td></tr>
+<tr><td>1</td><td>文件庫</td><td>PDF 上傳</td><td>—</td><td>儲存檔案</td></tr>
+<tr><td>2</td><td>AI 分析</td><td>PDF 全文</td><td>需求分析 prompt</td><td>Markdown 分析報告</td></tr>
+<tr><td>3a</td><td>方向選擇</td><td>分析 + 情報</td><td>方向題 prompt</td><td>3×4 選擇題 JSON</td></tr>
+<tr><td>3b</td><td>主題包裝</td><td>方向 + 風格 + 情報</td><td>主題 prompt</td><td>3 套 Markdown 方案</td></tr>
+<tr><td>3c</td><td>子活動提取</td><td>主題報告</td><td>提取 prompt</td><td>子活動 JSON 陣列</td></tr>
+<tr><td>4</td><td>企劃書架構</td><td>勾選子活動</td><td>—</td><td>確認架構</td></tr>
+<tr><td>4.1</td><td>執行建議</td><td>子活動</td><td>建議 prompt</td><td>JSON 執行方案</td></tr>
+<tr><td>4.2</td><td>亮點構想</td><td>子活動 + 情報</td><td>亮點 prompt</td><td>6 亮點 Markdown</td></tr>
+<tr><td>5</td><td>企劃書撰寫</td><td>子活動 + 情報</td><td>撰寫 prompt（逐章）</td><td>結構化 JSON 章節</td></tr>
+<tr><td>6</td><td>場地規劃</td><td>全部上下文</td><td>場地 prompt</td><td>Markdown 報告</td></tr>
+<tr><td>7</td><td>圖片生成</td><td>活動描述</td><td>圖片 prompt</td><td>PNG/JPEG 圖片</td></tr>
+</table>
+
+<div class="note" style="margin-top:30px">
+<strong>文件版本：</strong>v1.0 | <strong>產出時間：</strong>2026-04-04 05:50 | <strong>涵蓋範圍：</strong>WDAITEST 全應用 14 個 AI 觸點 | <strong>後處理：</strong>所有 AI 輸出均經過 emoji 移除 + 簡體轉繁體（OpenCC s2twp）後處理
+</div>
+
+</div><!-- /content -->
+</body>
+</html>

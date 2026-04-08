@@ -91,6 +91,8 @@ ${context.substring(0, 6000)}
       temperature: 0.4,
       maxTokens: 16384,
       systemPrompt: '你是一位資深的台灣政府採購評審委員，擁有豐富的提問經驗。你的問題尖銳但公正，總能問到廠商的痛點。',
+      userId: req.userId,
+      keyIndex: req.keyIndex,
     });
 
     let content = cleanText(result.content || '');
@@ -217,6 +219,8 @@ ${chaptersText.substring(0, 6000) || context.substring(0, 6000)}
       temperature: 0.5,
       maxTokens: 12288,
       systemPrompt: '你是一位頂尖的簡報策略顧問，擅長在 15 分鐘內用最精準的方式傳達企劃書的核心價值。',
+      userId: req.userId,
+      keyIndex: req.keyIndex,
     });
 
     let report = cleanText(result.content || '');
@@ -313,6 +317,8 @@ ${context.substring(0, 6000)}
     const result = await callAI(prompt, {
       model: modelChannel, temperature: 0.3, maxTokens: 8192,
       systemPrompt: '你是一位善於在預算限制下最大化評審分數的策略師。',
+      userId: req.userId,
+      keyIndex: req.keyIndex,
     });
 
     let content = cleanText(result.content || '');
@@ -402,6 +408,8 @@ ${intel || '（無）'}
     const result = await callAI(prompt, {
       model: modelChannel, temperature: 0.5, maxTokens: 12288,
       systemPrompt: '你是台灣政府採購市場的資深觀察者，對各類型標案的競爭生態瞭若指掌。',
+      userId: req.userId,
+      keyIndex: req.keyIndex,
     });
 
     let report = cleanText(result.content || '');
@@ -487,6 +495,8 @@ ${context.substring(0, 6000)}
     const result = await callAI(prompt, {
       model: modelChannel, temperature: 0.3, maxTokens: 8192,
       systemPrompt: '你是一位嚴謹的專案管理師。',
+      userId: req.userId,
+      keyIndex: req.keyIndex,
     });
 
     let content = cleanText(result.content || '');
@@ -617,6 +627,8 @@ ${context.substring(0, 6000)}
     const result = await callAI(prompt, {
       model: modelChannel, temperature: 0.5, maxTokens: 16384,
       systemPrompt: '你是台灣數位行銷與輿情分析領域的頂尖專家，服務過多個政府機關的數位行銷案。',
+      userId: req.userId,
+      keyIndex: req.keyIndex,
     });
 
     let report = cleanText(result.content || '');

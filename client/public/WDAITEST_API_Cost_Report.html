@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WDAITEST 系統 API 營運費用分析報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+
+  :root {
+    --primary: #4F46E5;
+    --primary-light: #818CF8;
+    --primary-dark: #3730A3;
+    --accent: #7C3AED;
+    --success: #059669;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4;
+    margin: 15mm 18mm;
+  }
+
+  body {
+    font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--gray-800);
+    background: #fff;
+    font-size: 11pt;
+    line-height: 1.7;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ===== COVER PAGE ===== */
+  .cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #4338ca 60%, #6366f1 100%);
+    color: #fff;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: rgba(139, 92, 246, 0.15);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -150px; left: -100px;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.1);
+  }
+  .cover-content { position: relative; z-index: 1; text-align: center; }
+  .cover-badge {
+    display: inline-block;
+    padding: 6px 24px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 100px;
+    font-size: 10pt;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    color: rgba(255,255,255,0.8);
+  }
+  .cover h1 {
+    font-size: 32pt;
+    font-weight: 900;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+  .cover h2 {
+    font-size: 16pt;
+    font-weight: 300;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 50px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .cover-meta-item {
+    text-align: center;
+  }
+  .cover-meta-label {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 4px;
+  }
+  .cover-meta-value {
+    font-size: 11pt;
+    font-weight: 500;
+  }
+  .cover-footer {
+    position: absolute;
+    bottom: 40px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 9pt;
+    color: rgba(255,255,255,0.4);
+    z-index: 1;
+  }
+
+  /* ===== PAGE LAYOUT ===== */
+  .page {
+    page-break-after: always;
+    padding: 0;
+    min-height: calc(100vh - 30mm);
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ===== HEADERS ===== */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    margin-bottom: 24px;
+  }
+  .page-header-title {
+    font-size: 9pt;
+    color: var(--primary);
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .page-header-num {
+    font-size: 9pt;
+    color: var(--gray-400);
+  }
+
+  .section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14pt;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+  h2.section-title {
+    display: flex;
+    align-items: center;
+    font-size: 16pt;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+  }
+  h3 {
+    font-size: 12pt;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 18px 0 10px;
+  }
+  h4 {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin: 14px 0 8px;
+  }
+
+  /* ===== TABLES ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px;
+    font-size: 9.5pt;
+  }
+  thead th {
+    background: var(--gray-800);
+    color: #fff;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 9pt;
+    white-space: nowrap;
+  }
+  thead th:first-child { border-radius: 6px 0 0 0; }
+  thead th:last-child { border-radius: 0 6px 0 0; }
+
+  tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--gray-200);
+    vertical-align: middle;
+  }
+  tbody tr:nth-child(even) { background: var(--gray-50); }
+  tbody tr:hover { background: #EEF2FF; }
+
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .text-primary { color: var(--primary); font-weight: 700; }
+  .text-success { color: var(--success); font-weight: 700; }
+  .text-accent { color: var(--accent); font-weight: 700; }
+  .text-warning { color: var(--warning); font-weight: 700; }
+  .text-danger { color: var(--danger); font-weight: 700; }
+  .text-bold { font-weight: 700; }
+  .text-sm { font-size: 8.5pt; color: var(--gray-500); }
+
+  .highlight-row td {
+    background: #EEF2FF !important;
+    font-weight: 600;
+  }
+
+  /* ===== CARDS ===== */
+  .card {
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    background: #fff;
+  }
+  .card-accent {
+    border-left: 4px solid var(--primary);
+    background: linear-gradient(135deg, #EEF2FF 0%, #fff 100%);
+  }
+  .card-success {
+    border-left: 4px solid var(--success);
+    background: linear-gradient(135deg, #ECFDF5 0%, #fff 100%);
+  }
+  .card-warning {
+    border-left: 4px solid var(--warning);
+    background: linear-gradient(135deg, #FFFBEB 0%, #fff 100%);
+  }
+
+  /* ===== KPI GRID ===== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .kpi-box {
+    text-align: center;
+    padding: 14px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--gray-200);
+  }
+  .kpi-box.green { background: #ECFDF5; border-color: #A7F3D0; }
+  .kpi-box.yellow { background: #FFFBEB; border-color: #FDE68A; }
+  .kpi-box.blue { background: #EFF6FF; border-color: #BFDBFE; }
+  .kpi-box.purple { background: #F5F3FF; border-color: #DDD6FE; }
+  .kpi-box.red { background: #FEF2F2; border-color: #FECACA; }
+
+  .kpi-label {
+    font-size: 8pt;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .kpi-value {
+    font-size: 14pt;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+  .kpi-unit {
+    font-size: 8pt;
+    color: var(--gray-400);
+    margin-top: 2px;
+  }
+
+  /* ===== BAR CHART ===== */
+  .bar-chart { margin: 14px 0; }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    margin: 6px 0;
+    gap: 8px;
+  }
+  .bar-label {
+    width: 140px;
+    font-size: 9pt;
+    font-weight: 500;
+    text-align: right;
+    flex-shrink: 0;
+    color: var(--gray-700);
+  }
+  .bar-track {
+    flex: 1;
+    height: 22px;
+    background: var(--gray-100);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    font-size: 8pt;
+    color: #fff;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: width 0.3s;
+  }
+  .bar-amount {
+    width: 110px;
+    font-size: 9pt;
+    font-weight: 700;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ===== STAR RATING ===== */
+  .stars { color: #FBBF24; letter-spacing: -1px; }
+  .stars-dim { color: var(--gray-300); }
+
+  /* ===== RECOMMEND BOX ===== */
+  .recommend-box {
+    background: linear-gradient(135deg, #1e1b4b, #4338ca);
+    color: #fff;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin: 20px 0;
+  }
+  .recommend-box h3 {
+    color: #fff;
+    font-size: 14pt;
+    margin: 0 0 12px;
+  }
+  .recommend-box p {
+    color: rgba(255,255,255,0.85);
+    font-size: 10pt;
+    line-height: 1.8;
+  }
+  .recommend-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 3px 12px;
+    border-radius: 100px;
+    font-size: 8pt;
+    margin: 4px 4px 4px 0;
+  }
+
+  /* ===== FOOTER ===== */
+  .doc-footer {
+    margin-top: 30px;
+    padding-top: 12px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    font-size: 8pt;
+    color: var(--gray-400);
+  }
+
+  /* ===== UTILITIES ===== */
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mb-8 { margin-bottom: 8px; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 8pt;
+    font-weight: 600;
+  }
+  .tag-green { background: #D1FAE5; color: #065F46; }
+  .tag-yellow { background: #FEF3C7; color: #92400E; }
+  .tag-red { background: #FEE2E2; color: #991B1B; }
+  .tag-blue { background: #DBEAFE; color: #1E40AF; }
+  .tag-purple { background: #EDE9FE; color: #5B21B6; }
+
+  .note {
+    font-size: 8.5pt;
+    color: var(--gray-500);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .cover { height: 100vh; }
+    .page { page-break-after: always; }
+    .no-print { display: none; }
+  }
+
+  /* Print button */
+  .print-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 12pt;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+    z-index: 999;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .print-btn:hover { background: var(--primary-dark); }
+
+  @media print { .print-btn { display: none; } }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">📄 列印 / 儲存 PDF</button>
+
+<!-- ========== COVER PAGE ========== -->
+<div class="cover">
+  <div class="cover-content">
+    <div class="cover-badge">Confidential · Internal Use</div>
+    <h1>WDAITEST 系統<br>API 營運費用分析報告</h1>
+    <h2>AI 供應商成本評估與推薦方案</h2>
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">報告日期</div>
+        <div class="cover-meta-value">2026 年 4 月 5 日</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">定價基準</div>
+        <div class="cover-meta-value">2026 Q2 市場價</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">分析模型數</div>
+        <div class="cover-meta-value">5 款</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">AI 呼叫點數</div>
+        <div class="cover-meta-value">16 個</div>
+      </div>
+    </div>
+  </div>
+  <div class="cover-footer">WDMC Technology · Prepared for Internal Review</div>
+</div>
+
+<!-- ========== PAGE 2: 系統概覽 ========== -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">WDAITEST API 費用分析</span>
+    <span class="page-header-num">P.02</span>
+  </div>
+
+  <h2 class="section-title"><span class="section-num">1</span>系統 AI 呼叫點盤點</h2>
+
+  <p style="margin-bottom:14px;">WDAITEST 系統共有 <strong>16 個 AI 呼叫點</strong>，涵蓋標案 / 商案企劃的完整工作流程。以下為每個專案完整執行一次的 Token 消耗明細：</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>功能模組</th>
+        <th>路由</th>
+        <th class="text-right">輸入 Token</th>
+        <th class="text-right">輸出 Token</th>
+        <th class="text-center">次數/案</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>AI 需求分析</td><td>analysis.js</td><td class="text-right">8,000</td><td class="text-right">15,000</td><td class="text-center">1</td></tr>
+      <tr><td>2</td><td>主題方向選擇題</td><td>themes.js P1</td><td class="text-right">6,000</td><td class="text-right">500</td><td class="text-center">1</td></tr>
+      <tr><td>3</td><td>主題包裝 3 方案</td><td>themes.js P2</td><td class="text-right">8,000</td><td class="text-right">10,000</td><td class="text-center">1</td></tr>
+      <tr><td>4</td><td>子活動提取</td><td>themes.js P3</td><td class="text-right">12,000</td><td class="text-right">2,000</td><td class="text-center">1</td></tr>
+      <tr><td>5</td><td>子活動深化</td><td>themes.js P4</td><td class="text-right">10,000</td><td class="text-right">3,000</td><td class="text-center">1</td></tr>
+      <tr><td>6</td><td>亮點報告生成</td><td>highlights.js</td><td class="text-right">10,000</td><td class="text-right">6,000</td><td class="text-center">1</td></tr>
+      <tr><td>7</td><td>企劃書架構摘要</td><td>plan-summary.js</td><td class="text-right">8,000</td><td class="text-right">3,000</td><td class="text-center">1</td></tr>
+      <tr><td>8</td><td>企劃書章節撰寫</td><td>proposal-writing.js</td><td class="text-right">6,000</td><td class="text-right">8,000</td><td class="text-center">×5 章</td></tr>
+      <tr><td>9</td><td>企劃書結構生成</td><td>proposal.js</td><td class="text-right">3,000</td><td class="text-right">5,000</td><td class="text-center">1</td></tr>
+      <tr><td>10</td><td>簡報大綱生成</td><td>presentation.js</td><td class="text-right">2,000</td><td class="text-right">4,000</td><td class="text-center">1</td></tr>
+      <tr><td>11</td><td>AI 成本建議</td><td>costs.js</td><td class="text-right">1,500</td><td class="text-right">2,000</td><td class="text-center">1</td></tr>
+      <tr><td>12</td><td>場地規劃報告</td><td>image-gen.js</td><td class="text-right">8,000</td><td class="text-right">8,000</td><td class="text-center">1</td></tr>
+      <tr><td>13</td><td>標案匹配度分析</td><td>intel.js</td><td class="text-right">500</td><td class="text-right">200</td><td class="text-center">×10</td></tr>
+      <tr><td>14</td><td>得標趨勢分析</td><td>intel.js</td><td class="text-right">800</td><td class="text-right">300</td><td class="text-center">1</td></tr>
+      <tr><td>15</td><td>AI 追問對話</td><td>ai-chat.js</td><td class="text-right">1,200</td><td class="text-right">400</td><td class="text-center">×5</td></tr>
+      <tr><td>16</td><td>通用 AI 問答</td><td>ai.js</td><td class="text-right">1,000</td><td class="text-right">2,000</td><td class="text-center">×3</td></tr>
+      <tr class="highlight-row">
+        <td colspan="3"><strong>合計（完整使用模式）</strong></td>
+        <td class="text-right text-primary">121,300</td>
+        <td class="text-right text-primary">108,800</td>
+        <td class="text-center"><strong>230,100</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="card card-accent">
+    <strong>說明：</strong>以上為每個專案「完整使用」所有功能時的 Token 消耗量估算。核心工作流（#1–#9）為必經流程，共消耗約 179,500 tokens；進階功能（#10–#16）為選用，視使用情境而定。
+  </div>
+</div>
+
+<!-- ========== PAGE 3: 供應商定價 & 每案單價 ========== -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">WDAITEST API 費用分析</span>
+    <span class="page-header-num">P.03</span>
+  </div>
+
+  <h2 class="section-title"><span class="section-num">2</span>三大供應商 API 定價</h2>
+
+  <p style="margin-bottom: 14px">以下為 2026 Q2 各供應商公開定價，單位為 <strong>USD / 每百萬 Token</strong>：</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>供應商</th>
+        <th>模型</th>
+        <th class="text-right">輸入價</th>
+        <th class="text-right">輸出價</th>
+        <th class="text-center">上下文窗口</th>
+        <th class="text-center">特性</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-green">Google</span></td>
+        <td class="text-bold">Gemini 2.5 Flash</td>
+        <td class="text-right">$0.30</td>
+        <td class="text-right">$2.50</td>
+        <td class="text-center">1,000K</td>
+        <td class="text-center"><span class="tag tag-green">推薦</span></td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td class="text-bold">GPT-4o-mini</td>
+        <td class="text-right">$0.15</td>
+        <td class="text-right">$0.60</td>
+        <td class="text-center">128K</td>
+        <td class="text-center"><span class="tag tag-blue">經濟</span></td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td class="text-bold">GPT-4o</td>
+        <td class="text-right">$2.50</td>
+        <td class="text-right">$10.00</td>
+        <td class="text-center">128K</td>
+        <td class="text-center"><span class="tag tag-purple">高端</span></td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td class="text-bold">Claude Haiku 4.5</td>
+        <td class="text-right">$1.00</td>
+        <td class="text-right">$5.00</td>
+        <td class="text-center">200K</td>
+        <td class="text-center"><span class="tag tag-blue">經濟</span></td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td class="text-bold">Claude Sonnet 4.6</td>
+        <td class="text-right">$3.00</td>
+        <td class="text-right">$15.00</td>
+        <td class="text-center">1,000K</td>
+        <td class="text-center"><span class="tag tag-red">旗艦</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-title" style="margin-top:28px;"><span class="section-num">3</span>每專案單價計算</h2>
+
+  <p style="margin-bottom:10px;">以「完整使用」模式（Input: 121,300 / Output: 108,800 tokens）計算每案費用：</p>
+
+  <div class="kpi-grid">
+    <div class="kpi-box green">
+      <div class="kpi-label">Gemini 2.5 Flash</div>
+      <div class="kpi-value" style="color:#059669;">NT$15</div>
+      <div class="kpi-unit">$0.46 USD / 案</div>
+    </div>
+    <div class="kpi-box yellow">
+      <div class="kpi-label">GPT-4o-mini</div>
+      <div class="kpi-value" style="color:#D97706;">NT$4</div>
+      <div class="kpi-unit">$0.13 USD / 案</div>
+    </div>
+    <div class="kpi-box blue">
+      <div class="kpi-label">GPT-4o</div>
+      <div class="kpi-value" style="color:#2563EB;">NT$67</div>
+      <div class="kpi-unit">$2.09 USD / 案</div>
+    </div>
+    <div class="kpi-box purple">
+      <div class="kpi-label">Claude Haiku 4.5</div>
+      <div class="kpi-value" style="color:#7C3AED;">NT$32</div>
+      <div class="kpi-unit">$1.00 USD / 案</div>
+    </div>
+    <div class="kpi-box red">
+      <div class="kpi-label">Claude Sonnet 4.6</div>
+      <div class="kpi-value" style="color:#DC2626;">NT$96</div>
+      <div class="kpi-unit">$2.99 USD / 案</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>供應商</th>
+        <th>模型</th>
+        <th class="text-right">輸入費</th>
+        <th class="text-right">輸出費</th>
+        <th class="text-right">每案 USD</th>
+        <th class="text-right">每案 TWD</th>
+        <th class="text-center">相對倍數</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td>GPT-4o-mini</td>
+        <td class="text-right">$0.027</td>
+        <td class="text-right">$0.098</td>
+        <td class="text-right text-bold">$0.13</td>
+        <td class="text-right text-bold">NT$ 4</td>
+        <td class="text-center">1.0×</td>
+      </tr>
+      <tr class="highlight-row">
+        <td><span class="tag tag-green">Google</span></td>
+        <td>Gemini 2.5 Flash</td>
+        <td class="text-right">$0.055</td>
+        <td class="text-right">$0.408</td>
+        <td class="text-right text-success">$0.46</td>
+        <td class="text-right text-success">NT$ 15</td>
+        <td class="text-center text-success">3.7×</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td>Claude Haiku 4.5</td>
+        <td class="text-right">$0.182</td>
+        <td class="text-right">$0.816</td>
+        <td class="text-right text-bold">$1.00</td>
+        <td class="text-right text-bold">NT$ 32</td>
+        <td class="text-center">7.7×</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td>GPT-4o</td>
+        <td class="text-right">$0.455</td>
+        <td class="text-right">$1.632</td>
+        <td class="text-right text-bold">$2.09</td>
+        <td class="text-right text-bold">NT$ 67</td>
+        <td class="text-center">16.1×</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td>Claude Sonnet 4.6</td>
+        <td class="text-right">$0.546</td>
+        <td class="text-right">$2.448</td>
+        <td class="text-right text-bold">$2.99</td>
+        <td class="text-right text-bold">NT$ 96</td>
+        <td class="text-center">23.1×</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="note">* 匯率基準：1 USD ≈ 32 TWD | 相對倍數以 GPT-4o-mini 為基準</p>
+</div>
+
+<!-- ========== PAGE 4: 30案/天 ========== -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">WDAITEST API 費用分析</span>
+    <span class="page-header-num">P.04</span>
+  </div>
+
+  <h2 class="section-title"><span class="section-num">4</span>營運規模費用試算</h2>
+
+  <!-- 30 案/天 -->
+  <h3>📦 規模 A：30 案 / 天（月產 900 件企劃）</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>供應商</th>
+        <th>模型</th>
+        <th class="text-right">日費 (USD)</th>
+        <th class="text-right">日費 (TWD)</th>
+        <th class="text-right">月費 (USD)</th>
+        <th class="text-right">月費 (TWD)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td>GPT-4o-mini</td>
+        <td class="text-right">$3.75</td>
+        <td class="text-right">NT$ 120</td>
+        <td class="text-right text-bold">$112.50</td>
+        <td class="text-right text-bold">NT$ 3,600</td>
+      </tr>
+      <tr class="highlight-row">
+        <td><span class="tag tag-green">Google</span></td>
+        <td>Gemini 2.5 Flash ★</td>
+        <td class="text-right">$13.86</td>
+        <td class="text-right">NT$ 443</td>
+        <td class="text-right text-success">$415.80</td>
+        <td class="text-right text-success">NT$ 13,306</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td>Claude Haiku 4.5</td>
+        <td class="text-right">$29.94</td>
+        <td class="text-right">NT$ 958</td>
+        <td class="text-right text-bold">$898.20</td>
+        <td class="text-right text-bold">NT$ 28,742</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td>GPT-4o</td>
+        <td class="text-right">$62.61</td>
+        <td class="text-right">NT$ 2,004</td>
+        <td class="text-right text-bold">$1,878.30</td>
+        <td class="text-right text-bold">NT$ 60,106</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td>Claude Sonnet 4.6</td>
+        <td class="text-right">$89.82</td>
+        <td class="text-right">NT$ 2,874</td>
+        <td class="text-right text-bold">$2,694.60</td>
+        <td class="text-right text-bold">NT$ 86,227</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 100 案/天 -->
+  <h3>📦 規模 B：100 案 / 天（月產 3,000 件企劃）</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>供應商</th>
+        <th>模型</th>
+        <th class="text-right">日費 (USD)</th>
+        <th class="text-right">日費 (TWD)</th>
+        <th class="text-right">月費 (USD)</th>
+        <th class="text-right">月費 (TWD)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td>GPT-4o-mini</td>
+        <td class="text-right">$12.50</td>
+        <td class="text-right">NT$ 400</td>
+        <td class="text-right text-bold">$375</td>
+        <td class="text-right text-bold">NT$ 12,000</td>
+      </tr>
+      <tr class="highlight-row">
+        <td><span class="tag tag-green">Google</span></td>
+        <td>Gemini 2.5 Flash ★</td>
+        <td class="text-right">$46.20</td>
+        <td class="text-right">NT$ 1,478</td>
+        <td class="text-right text-success">$1,386</td>
+        <td class="text-right text-success">NT$ 44,352</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td>Claude Haiku 4.5</td>
+        <td class="text-right">$99.80</td>
+        <td class="text-right">NT$ 3,194</td>
+        <td class="text-right text-bold">$2,994</td>
+        <td class="text-right text-bold">NT$ 95,808</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td>GPT-4o</td>
+        <td class="text-right">$208.70</td>
+        <td class="text-right">NT$ 6,678</td>
+        <td class="text-right text-bold">$6,261</td>
+        <td class="text-right text-bold">NT$ 200,352</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td>Claude Sonnet 4.6</td>
+        <td class="text-right">$299.40</td>
+        <td class="text-right">NT$ 9,581</td>
+        <td class="text-right text-bold">$8,982</td>
+        <td class="text-right text-bold">NT$ 287,424</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 500 案/天 -->
+  <h3>📦 規模 C：500 案 / 天（月產 15,000 件企劃）</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>供應商</th>
+        <th>模型</th>
+        <th class="text-right">日費 (USD)</th>
+        <th class="text-right">日費 (TWD)</th>
+        <th class="text-right">月費 (USD)</th>
+        <th class="text-right">月費 (TWD)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td>GPT-4o-mini</td>
+        <td class="text-right">$62.50</td>
+        <td class="text-right">NT$ 2,000</td>
+        <td class="text-right text-bold">$1,875</td>
+        <td class="text-right text-bold">NT$ 60,000</td>
+      </tr>
+      <tr class="highlight-row">
+        <td><span class="tag tag-green">Google</span></td>
+        <td>Gemini 2.5 Flash ★</td>
+        <td class="text-right">$231</td>
+        <td class="text-right">NT$ 7,392</td>
+        <td class="text-right text-success">$6,930</td>
+        <td class="text-right text-success">NT$ 221,760</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td>Claude Haiku 4.5</td>
+        <td class="text-right">$499</td>
+        <td class="text-right">NT$ 15,968</td>
+        <td class="text-right text-bold">$14,970</td>
+        <td class="text-right text-bold">NT$ 479,040</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">OpenAI</span></td>
+        <td>GPT-4o</td>
+        <td class="text-right">$1,044</td>
+        <td class="text-right">NT$ 33,392</td>
+        <td class="text-right text-bold">$31,305</td>
+        <td class="text-right text-bold">NT$ 1,001,760</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">Anthropic</span></td>
+        <td>Claude Sonnet 4.6</td>
+        <td class="text-right">$1,497</td>
+        <td class="text-right">NT$ 47,904</td>
+        <td class="text-right text-bold">$44,910</td>
+        <td class="text-right text-bold">NT$ 1,437,120</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="note">* 月費 = 日費 × 30 天 | 匯率：1 USD ≈ 32 TWD</p>
+</div>
+
+<!-- ========== PAGE 5: 視覺化 & 評估矩陣 ========== -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">WDAITEST API 費用分析</span>
+    <span class="page-header-num">P.05</span>
+  </div>
+
+  <h2 class="section-title"><span class="section-num">5</span>費用視覺化對比</h2>
+
+  <h3>月費對比 — 30 案 / 天</h3>
+  <div class="bar-chart">
+    <div class="bar-row">
+      <span class="bar-label">GPT-4o-mini</span>
+      <div class="bar-track"><div class="bar-fill" style="width:4.2%;background:#D97706;"></div></div>
+      <span class="bar-amount" style="color:#D97706;">NT$ 3,600</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Gemini 2.5 Flash ★</span>
+      <div class="bar-track"><div class="bar-fill" style="width:15.4%;background:#059669;"></div></div>
+      <span class="bar-amount" style="color:#059669;">NT$ 13,306</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Claude Haiku 4.5</span>
+      <div class="bar-track"><div class="bar-fill" style="width:33.3%;background:#7C3AED;"></div></div>
+      <span class="bar-amount" style="color:#7C3AED;">NT$ 28,742</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">GPT-4o</span>
+      <div class="bar-track"><div class="bar-fill" style="width:69.7%;background:#2563EB;"></div></div>
+      <span class="bar-amount" style="color:#2563EB;">NT$ 60,106</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Claude Sonnet 4.6</span>
+      <div class="bar-track"><div class="bar-fill" style="width:100%;background:#DC2626;"></div></div>
+      <span class="bar-amount" style="color:#DC2626;">NT$ 86,227</span>
+    </div>
+  </div>
+
+  <h3>月費對比 — 100 案 / 天</h3>
+  <div class="bar-chart">
+    <div class="bar-row">
+      <span class="bar-label">GPT-4o-mini</span>
+      <div class="bar-track"><div class="bar-fill" style="width:4.2%;background:#D97706;"></div></div>
+      <span class="bar-amount" style="color:#D97706;">NT$ 12,000</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Gemini 2.5 Flash ★</span>
+      <div class="bar-track"><div class="bar-fill" style="width:15.4%;background:#059669;"></div></div>
+      <span class="bar-amount" style="color:#059669;">NT$ 44,352</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Claude Haiku 4.5</span>
+      <div class="bar-track"><div class="bar-fill" style="width:33.3%;background:#7C3AED;"></div></div>
+      <span class="bar-amount" style="color:#7C3AED;">NT$ 95,808</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">GPT-4o</span>
+      <div class="bar-track"><div class="bar-fill" style="width:69.7%;background:#2563EB;"></div></div>
+      <span class="bar-amount" style="color:#2563EB;">NT$ 200,352</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Claude Sonnet 4.6</span>
+      <div class="bar-track"><div class="bar-fill" style="width:100%;background:#DC2626;"></div></div>
+      <span class="bar-amount" style="color:#DC2626;">NT$ 287,424</span>
+    </div>
+  </div>
+
+  <h3>月費對比 — 500 案 / 天</h3>
+  <div class="bar-chart">
+    <div class="bar-row">
+      <span class="bar-label">GPT-4o-mini</span>
+      <div class="bar-track"><div class="bar-fill" style="width:4.2%;background:#D97706;"></div></div>
+      <span class="bar-amount" style="color:#D97706;">NT$ 60,000</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Gemini 2.5 Flash ★</span>
+      <div class="bar-track"><div class="bar-fill" style="width:15.4%;background:#059669;"></div></div>
+      <span class="bar-amount" style="color:#059669;">NT$ 221,760</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Claude Haiku 4.5</span>
+      <div class="bar-track"><div class="bar-fill" style="width:33.3%;background:#7C3AED;"></div></div>
+      <span class="bar-amount" style="color:#7C3AED;">NT$ 479,040</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">GPT-4o</span>
+      <div class="bar-track"><div class="bar-fill" style="width:69.7%;background:#2563EB;"></div></div>
+      <span class="bar-amount" style="color:#2563EB;">NT$ 1,001,760</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Claude Sonnet 4.6</span>
+      <div class="bar-track"><div class="bar-fill" style="width:100%;background:#DC2626;"></div></div>
+      <span class="bar-amount" style="color:#DC2626;">NT$ 1,437,120</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 6: 評估矩陣 & 建議 ========== -->
+<div class="page">
+  <div class="page-header">
+    <span class="page-header-title">WDAITEST API 費用分析</span>
+    <span class="page-header-num">P.06</span>
+  </div>
+
+  <h2 class="section-title"><span class="section-num">6</span>綜合評估矩陣</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>評估項目</th>
+        <th class="text-center">Gemini 2.5 Flash</th>
+        <th class="text-center">GPT-4o-mini</th>
+        <th class="text-center">GPT-4o</th>
+        <th class="text-center">Claude Haiku 4.5</th>
+        <th class="text-center">Claude Sonnet 4.6</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="text-bold">每案單價</td>
+        <td class="text-center text-success">NT$15</td>
+        <td class="text-center">NT$4</td>
+        <td class="text-center">NT$67</td>
+        <td class="text-center">NT$32</td>
+        <td class="text-center text-danger">NT$96</td>
+      </tr>
+      <tr>
+        <td class="text-bold">100案/天 月費</td>
+        <td class="text-center text-success">NT$44K</td>
+        <td class="text-center">NT$12K</td>
+        <td class="text-center">NT$200K</td>
+        <td class="text-center">NT$96K</td>
+        <td class="text-center text-danger">NT$287K</td>
+      </tr>
+      <tr>
+        <td class="text-bold">中文寫作品質</td>
+        <td class="text-center"><span class="stars">★★★★★</span></td>
+        <td class="text-center"><span class="stars">★★★</span><span class="stars-dim">★★</span></td>
+        <td class="text-center"><span class="stars">★★★★</span><span class="stars-dim">★</span></td>
+        <td class="text-center"><span class="stars">★★★</span><span class="stars-dim">★★</span></td>
+        <td class="text-center"><span class="stars">★★★★★</span></td>
+      </tr>
+      <tr>
+        <td class="text-bold">JSON 輸出穩定</td>
+        <td class="text-center"><span class="stars">★★★★</span><span class="stars-dim">★</span></td>
+        <td class="text-center"><span class="stars">★★★★★</span></td>
+        <td class="text-center"><span class="stars">★★★★★</span></td>
+        <td class="text-center"><span class="stars">★★★★</span><span class="stars-dim">★</span></td>
+        <td class="text-center"><span class="stars">★★★★★</span></td>
+      </tr>
+      <tr>
+        <td class="text-bold">上下文窗口</td>
+        <td class="text-center"><span class="tag tag-green">1M</span></td>
+        <td class="text-center"><span class="tag tag-yellow">128K</span></td>
+        <td class="text-center"><span class="tag tag-yellow">128K</span></td>
+        <td class="text-center"><span class="tag tag-blue">200K</span></td>
+        <td class="text-center"><span class="tag tag-green">1M</span></td>
+      </tr>
+      <tr>
+        <td class="text-bold">回應速度</td>
+        <td class="text-center">極快</td>
+        <td class="text-center">極快</td>
+        <td class="text-center">中等</td>
+        <td class="text-center">快</td>
+        <td class="text-center">中等</td>
+      </tr>
+      <tr>
+        <td class="text-bold">長文件完整分析</td>
+        <td class="text-center"><span class="tag tag-green">✓ 無限制</span></td>
+        <td class="text-center"><span class="tag tag-yellow">⚠ 128K</span></td>
+        <td class="text-center"><span class="tag tag-yellow">⚠ 128K</span></td>
+        <td class="text-center"><span class="tag tag-yellow">⚠ 200K</span></td>
+        <td class="text-center"><span class="tag tag-green">✓ 無限制</span></td>
+      </tr>
+      <tr>
+        <td class="text-bold">圖片生成</td>
+        <td class="text-center"><span class="tag tag-green">✓ 內建免費</span></td>
+        <td class="text-center"><span class="tag tag-red">✗ 需 DALL-E</span></td>
+        <td class="text-center"><span class="tag tag-red">✗ 需 DALL-E</span></td>
+        <td class="text-center"><span class="tag tag-red">✗ 無</span></td>
+        <td class="text-center"><span class="tag tag-red">✗ 無</span></td>
+      </tr>
+      <tr>
+        <td class="text-bold">免費開發額度</td>
+        <td class="text-center"><span class="tag tag-green">✓ 1500 RPD</span></td>
+        <td class="text-center"><span class="tag tag-red">✗</span></td>
+        <td class="text-center"><span class="tag tag-red">✗</span></td>
+        <td class="text-center"><span class="tag tag-red">✗</span></td>
+        <td class="text-center"><span class="tag tag-red">✗</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-title" style="margin-top:28px;"><span class="section-num">7</span>結論與建議</h2>
+
+  <div class="recommend-box">
+    <h3>🏆 推薦方案：Google Gemini 2.5 Flash</h3>
+    <p>
+      Gemini 2.5 Flash 在本系統的 16 個 AI 呼叫場景中，是唯一同時滿足「高品質中文輸出」、「超大上下文窗口（1M Token）」、「內建圖片生成」且「費用極低」的模型。即便在 500 案/天的大規模營運情境下，月費也僅約 NT$221,760，遠低於同品質等級的 Claude Sonnet（NT$1,437,120）。
+    </p>
+    <div style="margin-top:12px;">
+      <span class="recommend-tag">1M 上下文窗口</span>
+      <span class="recommend-tag">繁中品質最佳</span>
+      <span class="recommend-tag">內建圖片生成</span>
+      <span class="recommend-tag">免費開發額度</span>
+      <span class="recommend-tag">極快回應速度</span>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div class="card card-success">
+      <h4 style="margin-top:0;color:#059669;">💡 替代方案：GPT-4o-mini</h4>
+      <p style="font-size:9.5pt;">極致省錢首選（每案僅 NT$4），但中文品質較弱，上下文窗口僅 128K，超長標案文件需分段處理，且無內建圖片生成。</p>
+    </div>
+    <div class="card card-warning">
+      <h4 style="margin-top:0;color:#D97706;">💎 高端方案：Claude Sonnet 4.6</h4>
+      <p style="font-size:9.5pt;">文案品質與 Gemini 相當，1M context 窗口，但費用是 Gemini 的 6.5 倍且無圖片生成。僅建議在對文案有極端要求時考慮。</p>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <span>WDAITEST API Cost Analysis Report — Confidential</span>
+    <span>© 2026 WDMC Technology</span>
+  </div>
+</div>
+
+</body>
+</html>

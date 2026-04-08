@@ -40,7 +40,7 @@ export default {
   'login.passwordPlaceholder': '\u8f38\u5165\u5bc6\u78bc',
   'login.submit': '\u767b\u5165\u7cfb\u7d71',
   'login.submitting': '\u767b\u5165\u4e2d...',
-  'login.hint': '\u9810\u8a2d\u5e33\u865f\uff1aceo / wdmc2026',
+  'login.hint': '\u9810\u8a2d\u5e33\u865f\uff1atest / test2026',
   'greet.morning': '\u65e9\u5b89',
   'greet.afternoon': '\u5348\u5b89',
   'greet.evening': '\u665a\u5b89',

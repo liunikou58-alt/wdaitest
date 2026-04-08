@@ -1,4 +1,4 @@
-﻿node_modules
+node_modules
 dist
 *.log
 .env
@@ -13,4 +13,5 @@ wddata/
 erpone/
 *.exe
 *.pdf
-*.html
+/*.html
+!client/index.html

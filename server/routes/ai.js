@@ -37,6 +37,8 @@ router.post('/chat', async (req, res) => {
       systemPrompt: systemPrompt || defaultSystem,
       temperature: taskType === 'proposal' ? 0.7 : 0.3,
       maxTokens: taskType === 'proposal' ? 4000 : 2000,
+      userId: req.userId,
+      keyIndex: req.keyIndex,
     });
 
     res.json({
@@ -68,6 +70,8 @@ router.post('/generate', async (req, res) => {
       systemPrompt: `你是專業的活動企劃師，擅長撰寫政府標案企劃書。
 請產生完整、專業、格式嚴謹的內容。使用繁體中文。
 善用 markdown 格式，包含標題、列表、表格等。`,
+      userId: req.userId,
+      keyIndex: req.keyIndex,
     });
 
     res.json({

@@ -341,6 +341,8 @@ ${docContent}
       temperature: 0.2,
       maxTokens: 65536,  // Gemini 支援大量輸出
       systemPrompt: '你是一位資深的台灣標案與活動企劃分析師，專長是鉅細靡遺地分析需求文件，絕不遺漏任何頁面的內容。你的分析報告必須完整涵蓋文件的每一頁。',
+      userId: req.userId,
+      keyIndex: req.keyIndex,
     });
     console.log(`[Analysis] AI 回應完成, provider: ${chatResult.model}, 輸出字數: ${(chatResult.content || '').length}`);
 

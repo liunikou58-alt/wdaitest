@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>WDMC AI賦能系統 — 功能開發進度報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  @page { 
+    size: A4; 
+    margin: 20mm 18mm; 
+  }
+  
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    color: #1e1b4b;
+    line-height: 1.8;
+    font-size: 11pt;
+    background: white;
+  }
+
+  .cover {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 90vh;
+    text-align: center;
+    padding: 60px 40px;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    padding: 6px 20px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    font-size: 11pt;
+    font-weight: 500;
+    margin-bottom: 32px;
+    letter-spacing: 2px;
+  }
+
+  .cover h1 {
+    font-size: 28pt;
+    font-weight: 900;
+    color: #1e1b4b;
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+
+  .cover h2 {
+    font-size: 14pt;
+    font-weight: 400;
+    color: #6366f1;
+    margin-bottom: 48px;
+  }
+
+  .cover-meta {
+    font-size: 10pt;
+    color: #64748b;
+    line-height: 2;
+  }
+
+  .cover-line {
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #ec4899);
+    margin: 32px auto;
+    border-radius: 2px;
+  }
+
+  h2 {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #1e1b4b;
+    margin: 32px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #6366f1;
+  }
+
+  h3 {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #6366f1;
+    margin: 24px 0 12px;
+  }
+
+  h4 {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #1e1b4b;
+    margin: 16px 0 8px;
+  }
+
+  p { margin-bottom: 10px; }
+
+  .section {
+    page-break-inside: avoid;
+    margin-bottom: 24px;
+  }
+
+  .highlight-box {
+    background: #f8f7ff;
+    border-left: 4px solid #6366f1;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+  }
+
+  .highlight-box.orange {
+    background: #fffbf0;
+    border-left-color: #f59e0b;
+  }
+
+  .highlight-box.green {
+    background: #f0fdf4;
+    border-left-color: #10b981;
+  }
+
+  .screenshot {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin: 12px 0 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .screenshot-caption {
+    font-size: 9pt;
+    color: #94a3b8;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px;
+    font-size: 10pt;
+  }
+
+  th {
+    background: #6366f1;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  tr:nth-child(even) { background: #f8fafc; }
+
+  .flow-diagram {
+    background: #f8f7ff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    font-family: monospace;
+    font-size: 10pt;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: #4338ca;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 9pt;
+    font-weight: 600;
+  }
+
+  .badge-pass { background: #dcfce7; color: #166534; }
+  .badge-new { background: #ede9fe; color: #5b21b6; }
+
+  .page-break { page-break-before: always; }
+
+  .footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 9pt;
+    color: #94a3b8;
+    text-align: center;
+  }
+
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ===== 封面 ===== -->
+<div class="cover">
+  <div class="cover-badge">WDMC AI 賦能系統</div>
+  <h1>功能開發進度報告</h1>
+  <h2>主題包裝工作坊 — 亮點發想 + 場地佈圖規劃</h2>
+  <div class="cover-line"></div>
+  <div class="cover-meta">
+    報告日期：2026 年 4 月 3 日<br>
+    版本：v2.4<br>
+    開發團隊：WDMC 技術部<br>
+    狀態：已完成開發、通過 E2E 測試
+  </div>
+</div>
+
+<!-- ===== 目錄 ===== -->
+<h2>目錄</h2>
+<table>
+  <tr><td><strong>一、本次更新總覽</strong></td><td>新增功能與改動範圍</td></tr>
+  <tr><td><strong>二、完整工作流程</strong></td><td>Step 1 至 Step 7 數據流全景</td></tr>
+  <tr><td><strong>三、Phase 4 殺手級亮點發想</strong></td><td>新增功能詳細說明 + 截圖</td></tr>
+  <tr><td><strong>四、場地佈圖規劃</strong></td><td>Step 6 升級詳細說明 + 截圖</td></tr>
+  <tr><td><strong>五、E2E 測試報告</strong></td><td>全流程驗證結果</td></tr>
+  <tr><td><strong>六、下一步規劃</strong></td><td>後續開發方向</td></tr>
+</table>
+
+<!-- ===== 一、總覽 ===== -->
+<div class="page-break"></div>
+<h2>一、本次更新總覽</h2>
+
+<div class="highlight-box">
+  <h4>核心目標</h4>
+  <p>解決 PM 在撰寫企劃書時的「空白頁痛點」：系統自動從需求文件出發，逐步生成主題方案、子活動、殺手級亮點、場地規劃，讓 PM 不再從零開始。</p>
+</div>
+
+<h3>新增功能</h3>
+<table>
+  <tr><th>功能</th><th>位置</th><th>狀態</th><th>說明</th></tr>
+  <tr>
+    <td><strong>殺手級亮點發想</strong></td>
+    <td>Step 3 Phase 4</td>
+    <td><span class="badge badge-new">新增</span></td>
+    <td>AI 根據已選子活動產出 6 個亮點構想（Markdown 報告 + JSON 結構化）</td>
+  </tr>
+  <tr>
+    <td><strong>場地佈圖規劃報告</strong></td>
+    <td>Step 6</td>
+    <td><span class="badge badge-new">升級</span></td>
+    <td>從圖片生成工具升級為 10 章節場地規劃報告產生器</td>
+  </tr>
+  <tr>
+    <td><strong>亮點管理</strong></td>
+    <td>Step 3 底部</td>
+    <td><span class="badge badge-new">新增</span></td>
+    <td>PM 可勾選/取消亮點，控制哪些進入企劃書</td>
+  </tr>
+  <tr>
+    <td><strong>上下文自動帶入</strong></td>
+    <td>Step 6</td>
+    <td><span class="badge badge-new">升級</span></td>
+    <td>場地規劃自動讀取子活動、亮點、分析報告</td>
+  </tr>
+</table>
+
+<!-- ===== 二、流程 ===== -->
+<div class="page-break"></div>
+<h2>二、完整工作流程</h2>
+
+<p>系統目前的完整工作流程如下，每個步驟的輸出會自動成為下一步驟的輸入：</p>
+
+<div class="flow-diagram">Step 1  文件庫        上傳 PDF 需求文件
+   ↓ (文件原文)
+Step 2  AI 分析       自動分析需求、評選標準、核心資訊
+   ↓ (分析報告)
+Step 3  主題包裝      四階段創意工作坊
+   ├── Phase 1 → 3 題方向選擇（AI 出題，PM 點選）
+   ├── Phase 2 → 3 套主題方案（Markdown 報告）
+   ├── Phase 3 → 子活動提取 + 跨方案混搭勾選
+   └── Phase 4 → 殺手級亮點發想（6 個）  ← 本次新增
+   ↓ (子活動 + 亮點)
+Step 4  企劃書架構    載入子活動，每項可 AI 建議 / AI 模擬圖
+   ↓
+Step 5  架構總表      逐章 AI 撰寫完整企劃內容
+   ↓
+Step 6  場地佈圖規劃  10 章節場地規劃報告  ← 本次升級
+   ↓
+Step 7  投標管理      投標文件管理與追蹤</div>
+
+<div class="highlight-box green">
+  <h4>數據流驗證結果</h4>
+  <p>所有步驟之間的數據傳遞已通過 E2E 測試，無斷鏈問題。Step 3 選取的子活動和亮點，能完整流入 Step 4、Step 5、Step 6。</p>
+</div>
+
+<!-- ===== 三、亮點 ===== -->
+<div class="page-break"></div>
+<h2>三、Phase 4 殺手級亮點發想</h2>
+
+<h3>3.1 功能定位</h3>
+<p>亮點發想位於 Step 3 主題包裝工作坊的第四階段。PM 在勾選完子活動後，AI 會根據已選子活動 + 主題方案 + 需求文件，自動發想 6 個能在評選中製造差異化的「殺手級亮點」。</p>
+
+<h3>3.2 輸出格式（對齊客戶範本）</h3>
+<p>每個亮點包含以下結構：</p>
+<div class="highlight-box orange">
+  <p><strong>標題格式</strong>：「引號標題」：副標說明</p>
+  <p><strong>創意點</strong>：具體可執行的做法（含合作對象、設備、技術），至少 60 字</p>
+  <p><strong>亮點</strong>：對評審的殺傷力分析，至少 30 字</p>
+  <p><strong>執行小撇步</strong>：2-3 條應付評選的實戰技巧</p>
+  <p><strong>互動收尾</strong>：引導 PM 延伸討論的問句</p>
+</div>
+
+<h3>3.3 雙重輸出設計</h3>
+<table>
+  <tr><th>輸出</th><th>用途</th><th>格式</th></tr>
+  <tr><td>Markdown 深度報告</td><td>PM 閱讀、決策</td><td>6 個亮點 + 執行小撇步 + 互動收尾</td></tr>
+  <tr><td>JSON 結構化記錄</td><td>系統吃、Step 4 帶入</td><td>title / description / cost_level / mapped_criteria</td></tr>
+</table>
+
+<h3>3.4 實際截圖</h3>
+
+<img class="screenshot" src="/report-images/highlights_button.png" alt="亮點生成按鈕">
+<div class="screenshot-caption">圖 3-1：子活動儲存後出現「殺手級亮點發想」區塊</div>
+
+<img class="screenshot" src="/report-images/highlights_report.png" alt="亮點報告">
+<div class="screenshot-caption">圖 3-2：AI 生成的亮點構想報告（6 個亮點 + 創意點 + 殺傷力分析）</div>
+
+<img class="screenshot" src="/report-images/highlights_mgmt.png" alt="亮點管理">
+<div class="screenshot-caption">圖 3-3：亮點管理區 — PM 可勾選要納入企劃書的亮點</div>
+
+<!-- ===== 四、場地 ===== -->
+<div class="page-break"></div>
+<h2>四、場地佈圖規劃（Step 6 升級）</h2>
+
+<h3>4.1 升級前 vs 升級後</h3>
+<table>
+  <tr><th></th><th>升級前</th><th>升級後</th></tr>
+  <tr><td><strong>功能</strong></td><td>手動輸入關鍵字 → 圖片生成</td><td>自動讀取上下文 → 10 章節報告 + 圖片生成</td></tr>
+  <tr><td><strong>上下文</strong></td><td>不讀任何前置資料</td><td>自動帶入子活動、亮點、分析報告、需求文件</td></tr>
+  <tr><td><strong>產出</strong></td><td>1 張模擬圖</td><td>完整場地規劃報告 + 模擬圖</td></tr>
+</table>
+
+<h3>4.2 報告結構（10 章節）</h3>
+<table>
+  <tr><th>硬體規劃</th><th>活動規劃</th></tr>
+  <tr><td>1. 舞台設計（尺寸/材質/LED/視角）</td><td>6. 醫療服務規劃（AED/急救動線）</td></tr>
+  <tr><td>2. 活動場地布置（帳篷/桌椅/裝飾）</td><td>7. 環境規劃（垃圾/廁所/無障礙）</td></tr>
+  <tr><td>3. 報到區規劃（QR Code/排隊動線）</td><td>8. 雨天備案（室內替代/雨棚）</td></tr>
+  <tr><td>4. 燈光音響規劃（PA 瓦數/器材清單）</td><td>9. 人力規劃（配置表/班別/通訊）</td></tr>
+  <tr><td>5. 電力規劃（用電估算/發電機）</td><td>10. 拍攝規劃（機位/直播/交付）</td></tr>
+</table>
+
+<h3>4.3 實際截圖</h3>
+
+<img class="screenshot" src="/report-images/venue_initial.png" alt="場地模擬初始頁面">
+<div class="screenshot-caption">圖 4-1：場地佈圖規劃初始頁面 — 自動顯示上下文（子活動 6 個、亮點 6 個）</div>
+
+<img class="screenshot" src="/report-images/venue_report.png" alt="場地規劃報告">
+<div class="screenshot-caption">圖 4-2：AI 生成的場地規劃報告 — 功能區域配置總覽 + 硬體規劃</div>
+
+<img class="screenshot" src="/report-images/venue_activity.png" alt="活動規劃">
+<div class="screenshot-caption">圖 4-3：活動規劃區段 — 醫療、環境、雨備、人力、拍攝</div>
+
+<img class="screenshot" src="/report-images/venue_tool.png" alt="模擬圖工具">
+<div class="screenshot-caption">圖 4-4：報告下方保留模擬圖生成工具（照片上傳 + 關鍵字 + 4 種風格）</div>
+
+<!-- ===== 五、E2E ===== -->
+<div class="page-break"></div>
+<h2>五、E2E 測試報告</h2>
+
+<p>以下為完整流程端對端測試結果，測試日期：2026/04/03</p>
+
+<table>
+  <tr><th>Step</th><th>頁面</th><th>數據</th><th>UI</th><th>結果</th></tr>
+  <tr><td>1</td><td>文件庫</td><td>2 份 PDF 正確顯示</td><td>正常</td><td><span class="badge badge-pass">PASS</span></td></tr>
+  <tr><td>2</td><td>AI 分析</td><td>分析報告完整渲染</td><td>正常</td><td><span class="badge badge-pass">PASS</span></td></tr>
+  <tr><td>3</td><td>主題包裝</td><td>方案 + 子活動(6) + 亮點(6)</td><td>正常</td><td><span class="badge badge-pass">PASS</span></td></tr>
+  <tr><td>4</td><td>企劃書架構</td><td>6 個子活動完整帶入</td><td>正常</td><td><span class="badge badge-pass">PASS</span></td></tr>
+  <tr><td>5</td><td>架構總表</td><td>6 個章節可 AI 撰寫</td><td>正常</td><td><span class="badge badge-pass">PASS</span></td></tr>
+  <tr><td>6</td><td>場地佈圖規劃</td><td>10 章節報告 + 模擬圖</td><td>正常</td><td><span class="badge badge-pass">PASS</span></td></tr>
+</table>
+
+<div class="highlight-box green">
+  <p><strong>結論</strong>：全部 6 個步驟通過驗證，數據流完全打通，無 Console 錯誤，無空白區塊，全程繁體中文、無 emoji。</p>
+</div>
+
+<!-- ===== 六、下一步 ===== -->
+<h2>六、下一步規劃</h2>
+
+<table>
+  <tr><th>項目</th><th>說明</th><th>優先級</th></tr>
+  <tr><td>架構總表 AI 撰寫品質</td><td>優化 Step 5 逐章生成的內容深度</td><td>高</td></tr>
+  <tr><td>投標管理銜接</td><td>Step 7 與前面步驟的數據整合</td><td>中</td></tr>
+  <tr><td>匯出 PDF 功能</td><td>一鍵匯出完整企劃書 PDF</td><td>中</td></tr>
+  <tr><td>其他客戶範本</td><td>根據客戶回饋對齊更多範本格式</td><td>依回饋</td></tr>
+</table>
+
+<div class="footer">
+  WDMC AI 賦能系統 — 功能開發進度報告 | 2026/04/03 | Confidential
+</div>
+
+</body>
+</html>

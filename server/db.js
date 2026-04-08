@@ -6,7 +6,7 @@ const path = require('path');
 const { createAdapter } = require('../shared/db-adapter');
 
 const db = createAdapter({
-  type: process.env.DB_TYPE || 'json',
+  type: process.env.DB_TYPE || 'sqlite',
   dataDir: path.join(__dirname, '..', 'data'),
   connectionString: process.env.DATABASE_URL || '',
   collections: {

@@ -23,7 +23,8 @@ router.post('/login', (req, res) => {
   const token = jwt.sign({
     id: user.id, username: user.username, role: user.role,
     display_name: user.display_name, department_id: user.department_id,
-    department_name: dept?.name || null
+    department_name: dept?.name || null,
+    gemini_key_index: user.gemini_key_index || null,
   }, JWT_SECRET, { expiresIn: '7d' });
 
   res.json({

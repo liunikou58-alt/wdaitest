@@ -43,7 +43,7 @@ export default {
   'login.passwordPlaceholder': 'Enter password',
   'login.submit': 'Sign In',
   'login.submitting': 'Signing in...',
-  'login.hint': 'Default: admin / admin123',
+  'login.hint': 'Default: test / test2026',
 
   // === Dashboard ===
   'greet.morning': 'Good morning',

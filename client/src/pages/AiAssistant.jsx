@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useLang } from '../LangContext'
 import { api } from '../api'
 
-const LAYER_COLORS = { 1: '#059669', 2: '#0284c7', 3: '#8b5cf6' };
-const LAYER_LABELS = { 1: 'L1 · Groq', 2: 'L2 · GPT-4o-mini', 3: 'L3 · GPT-4o' };
+const LAYER_COLORS = { 1: '#8b5cf6', 2: '#8b5cf6', 3: '#8b5cf6' };
+const LAYER_LABELS = { 1: 'Gemini 2.5 Flash' };
 
 const QUICK_ACTIONS = [
   { text: '分析最新標案公告，找出適合我們的案子', task: 'match' },
@@ -75,7 +75,7 @@ export default function AiAssistant() {
       <div className="page-header" style={{ marginBottom: 12 }}>
         <div>
           <h1 className="page-title">{t('ai.title')}</h1>
-          <p className="page-subtitle">三層 AI 引擎 · Groq + GPT-4o-mini + GPT-4o · 自動路由</p>
+          <p className="page-subtitle">Gemini 2.5 Flash · 每用戶獨立 API Key · 6 人並行</p>
         </div>
         <div style={{ display: 'flex', gap: 3, background: 'rgba(139,92,246,.04)', borderRadius: 10, padding: 3 }}>
           {TABS.map(tb => (
@@ -131,11 +131,11 @@ export default function AiAssistant() {
             <div style={{ padding: '12px 20px', borderTop: '1px solid var(--c-border)', background: 'rgba(255,255,255,0.5)' }}>
               <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 10, color: 'var(--c-text-muted)', lineHeight: '24px' }}>模型：</span>
-                {[{ key: 'auto', label: '自動', color: '#64748b' }, { key: 'groq', label: 'Groq', color: '#059669' }, { key: 'gpt-4o-mini', label: 'GPT-4o-mini', color: '#0284c7' }, { key: 'gpt-4o', label: 'GPT-4o', color: '#8b5cf6' }].map(m => (
+                {[{ key: 'auto', label: 'Gemini 2.5 Flash', color: '#8b5cf6' }].map(m => (
                   <button key={m.key} onClick={() => setSelectedModel(m.key)} style={{
-                    padding: '3px 10px', borderRadius: 999, border: `1.5px solid ${selectedModel === m.key ? m.color : 'var(--c-border)'}`,
-                    background: selectedModel === m.key ? `${m.color}10` : 'transparent',
-                    color: selectedModel === m.key ? m.color : 'var(--c-text-muted)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all .2s',
+                    padding: '3px 10px', borderRadius: 999, border: `1.5px solid ${m.color}`,
+                    background: `${m.color}10`,
+                    color: m.color, fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all .2s',
                   }}>{m.label}</button>
                 ))}
               </div>
@@ -208,59 +208,55 @@ export default function AiAssistant() {
       {tab === 'guide' && (
         <div style={{ flex: 1, overflow: 'auto' }}>
           <div style={{ display: 'grid', gap: 16, maxWidth: 900 }}>
-            {/* 三層架構圖 */}
+            {/* 架構圖 */}
             <div className="card" style={{ padding: 24 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>三層 AI 引擎架構</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>Gemini 2.5 Flash 多用戶架構</h3>
               <div style={{ display: 'grid', gap: 12 }}>
-                {[
-                  { layer: 3, name: 'GPT-4o', icon: '', color: '#8b5cf6', bg: 'rgba(139,92,246,.04)', desc: '最高品質生成', uses: ['企劃書撰寫', '策略報告', '完整提案文件'], speed: '中', cost: '~$2.50/100K tokens (≈NT$0.08/次)', quality: '⭐⭐⭐⭐⭐' },
-                  { layer: 2, name: 'GPT-4o-mini', icon: '', color: '#0284c7', bg: 'rgba(2,132,199,.04)', desc: '高效分析引擎', uses: ['競爭分析', '趨勢報告', '深度匹配'], speed: '快', cost: '~$0.15/100K tokens (≈NT$0.005/次)', quality: '⭐⭐⭐⭐' },
-                  { layer: 1, name: 'Groq Llama 4', icon: '', color: '#059669', bg: 'rgba(5,150,105,.04)', desc: '極速免費引擎', uses: ['標案匹配', '快速問答', '基礎分類'], speed: '極快 (>500 tok/s)', cost: '免費 (30 RPM)', quality: '⭐⭐⭐' },
-                ].map(l => (
-                  <div key={l.layer} style={{ display: 'flex', gap: 16, padding: '18px 22px', borderRadius: 14, background: l.bg, border: `1px solid ${l.color}15` }}>
-                    <div style={{ fontSize: 32, lineHeight: 1 }}>{l.icon}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontSize: 15, fontWeight: 800, color: l.color }}>Layer {l.layer}: {l.name}</span>
-                        <span style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>{l.quality}</span>
-                      </div>
-                      <div style={{ fontSize: 12, marginBottom: 6 }}>{l.desc}</div>
-                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
-                        {l.uses.map(u => <span key={u} className="capsule" style={{ background: `${l.color}10`, color: l.color, fontSize: 10 }}>{u}</span>)}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>
-                        速度：{l.speed} · 費用：{l.cost}
-                      </div>
+                <div style={{ display: 'flex', gap: 16, padding: '18px 22px', borderRadius: 14, background: 'rgba(139,92,246,.04)', border: '1px solid rgba(139,92,246,.15)' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: '#8b5cf6' }}>Google Gemini 2.5 Flash</span>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: 'rgba(16,185,129,.1)', color: '#059669', fontWeight: 600 }}>唯一引擎</span>
                     </div>
+                    <div style={{ fontSize: 12, marginBottom: 8, color: 'var(--c-text-muted)' }}>每位用戶擁有獨立 API Key，互不限流。支援 1M token 上下文長度。</div>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                      {['需求分析', '企劃撰寫', '策略建議', '成本估算', '競爭分析', '簡報設計'].map(u => <span key={u} className="capsule" style={{ background: 'rgba(139,92,246,.1)', color: '#8b5cf6', fontSize: 10 }}>{u}</span>)}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>品質：⭐⭐⭐⭐⭐ · 速度：極快 · 費用：付費版</div>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
 
-            {/* 自動路由說明 */}
+            {/* 多用戶架構 */}
             <div className="card" style={{ padding: 24 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>智慧路由機制</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>6 用戶獨立 Key 架構</h3>
               <div style={{ fontSize: 13, lineHeight: 2.0 }}>
-                <p style={{ marginBottom: 12 }}>系統會根據<strong>任務類型</strong>自動選擇最合適的 AI 通道：</p>
+                <div style={{ padding: '14px 18px', borderRadius: 12, background: 'rgba(16,185,129,.04)', borderLeft: '4px solid var(--c-success)', marginBottom: 12 }}>
+                  每位用戶登入後，系統自動從 JWT Token 中讀取專屬 Key Index，<strong>直接對應到該用戶的 Gemini API Key</strong>。<br/>
+                  6 人同時使用時，各自的 API 配額完全獨立，不會互相搶限額。
+                </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--c-border)' }}>
-                      {['任務類型', '自動路由', '原因'].map(h => (
+                      {['帳號', 'Key Index', '角色'].map(h => (
                         <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--c-text-muted)' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {[
-                      ['標案匹配 / 摘要 / 分類', 'Groq', '速度最快，免費，適合大量處理'],
-                      ['深度分析 / 趨勢 / 競爭', 'GPT-4o-mini', '精度高但便宜，性價比最佳'],
-                      ['企劃書 / 執行計畫 / 策略', 'GPT-4o', '最高品質，適合重要文件'],
-                      ['一般對話 / 問答', 'Groq', '快速回應，節省費用'],
-                    ].map(([task, route, reason], i) => (
+                      ['mei', 'Key-1', '經理'],
+                      ['Conny', 'Key-2', '資深企劃'],
+                      ['Andrea', 'Key-3', '資深設計'],
+                      ['Alice', 'Key-4', '企劃人員'],
+                      ['ceo', 'Key-5', '執行長'],
+                      ['test', 'Key-6', '測試帳號'],
+                    ].map(([user, key, role], i) => (
                       <tr key={i} style={{ borderBottom: '1px solid var(--c-border)' }}>
-                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>{task}</td>
-                        <td style={{ padding: '8px 12px' }}>{route}</td>
-                        <td style={{ padding: '8px 12px', color: 'var(--c-text-muted)' }}>{reason}</td>
+                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>{user}</td>
+                        <td style={{ padding: '8px 12px', color: '#8b5cf6', fontWeight: 600 }}>{key}</td>
+                        <td style={{ padding: '8px 12px', color: 'var(--c-text-muted)' }}>{role}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -268,78 +264,32 @@ export default function AiAssistant() {
               </div>
             </div>
 
-            {/* 降級與容錯 */}
+            {/* 容錯機制 */}
             <div className="card" style={{ padding: 24 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>自動降級與容錯</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>503 指數退避重試</h3>
               <div style={{ fontSize: 13, lineHeight: 1.8 }}>
                 <div style={{ padding: '14px 18px', borderRadius: 12, background: 'rgba(16,185,129,.04)', borderLeft: '4px solid var(--c-success)', marginBottom: 12 }}>
-                  <strong>自動降級鏈</strong>：GPT-4o → GPT-4o-mini → Groq<br/>
-                  當高階模型失敗（限速/斷線/餘額不足）時，系統會<strong>自動嘗試下一層</strong>，不需要手動切換。
+                  當 Gemini 回傳 503（高需求）或 429（限流）時，系統會自動重試最多 <strong>5 次</strong>，等待時間依指數增長：<br/>
+                  3秒 → 6秒 → 12秒 → 24秒 → 48秒，<strong>絕不降級到其他模型</strong>。
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(139,92,246,.03)' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>已設定</div>
-                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>GROQ_API_KEY</div>
-                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>→ Layer 1 可用</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>資料庫</div>
+                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>SQLite WAL Mode</div>
+                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>→ 6 人並發讀寫安全</div>
                   </div>
                   <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(139,92,246,.03)' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>建議設定</div>
-                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>OPENAI_API_KEY</div>
-                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>→ 啟用 Layer 2 & 3</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>AI 引擎</div>
+                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>Gemini 2.5 Flash 專用</div>
+                    <div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>→ 6 組獨立 API Key</div>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* 費用估算 */}
-            <div className="card" style={{ padding: 24 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>費用估算</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--c-border)' }}>
-                    {['方案', '月費', '包含', '適合'].map(h => (
-                      <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--c-text-muted)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ['A. 純 Groq', 'NT$0~160', '日常匹配分析', 'MVP 驗證'],
-                    ['B. Groq + 4o-mini', 'NT$420', '+ 深度分析', '推薦起步'],
-                    ['C. 三層混合', 'NT$1,680', '+ 企劃書生成', '正式營運'],
-                    ['D. 全頂配', 'NT$3,400', '+ Claude 3.5', '規模化'],
-                  ].map(([plan, cost, includes, fit], i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--c-border)', background: i === 1 ? 'rgba(5,150,105,.03)' : 'transparent' }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{plan}</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 800, color: '#059669' }}>{cost}</td>
-                      <td style={{ padding: '10px 12px' }}>{includes}</td>
-                      <td style={{ padding: '10px 12px', color: 'var(--c-text-muted)' }}>{fit}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 10, background: 'rgba(139,92,246,.03)', fontSize: 11, color: 'var(--c-text-muted)', lineHeight: 1.7 }}>
-                日常使用 Groq 完全免費。只有使用 GPT-4o-mini/GPT-4o 時才計費。<br/>
-                系統會即時追蹤使用量，顯示在右側面板。
               </div>
             </div>
 
             {/* 效率預估 */}
-            <div className="card" style={{ padding: 24 }}>
+            <div className="card" style={{ padding: 24, marginBottom: 20 }}>
               <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>效率提升預估</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
-                {[
-                  { label: '月省人力', value: '161 小時', sub: '≈ 1 全職人力', color: '#8b5cf6' },
-                  { label: '保守 ROI', value: '341%', sub: '純算人力節省', color: '#059669' },
-                  { label: '月 AI 成本', value: 'NT$420起', sub: '方案 B', color: '#0284c7' },
-                ].map(k => (
-                  <div key={k.label} style={{ padding: '14px 16px', borderRadius: 12, background: `${k.color}06`, textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, color: 'var(--c-text-muted)' }}>{k.label}</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: k.color }}>{k.value}</div>
-                    <div style={{ fontSize: 10, color: 'var(--c-text-muted)' }}>{k.sub}</div>
-                  </div>
-                ))}
-              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--c-border)' }}>
@@ -371,28 +321,6 @@ export default function AiAssistant() {
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            {/* 設定指引 */}
-            <div className="card" style={{ padding: 24, marginBottom: 20 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>設定指引</h3>
-              <div style={{ fontSize: 13, lineHeight: 1.8 }}>
-                <div style={{ padding: '14px 18px', borderRadius: 12, background: 'rgba(139,92,246,.03)', marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>.env 檔案設定</div>
-                  <code style={{ display: 'block', padding: '10px 14px', borderRadius: 8, background: 'rgba(0,0,0,.03)', fontSize: 12, fontFamily: 'monospace', lineHeight: 2 }}>
-                    # Layer 1: Groq (必須)<br/>
-                    GROQ_API_KEY=gsk_your_key_here<br/>
-                    <br/>
-                    # Layer 2 & 3: OpenAI (建議)<br/>
-                    OPENAI_API_KEY=sk-your_key_here
-                  </code>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>
-                  <strong>取得 API Key：</strong><br/>
-                  • Groq：<a href="https://console.groq.com/keys" target="_blank" rel="noopener" style={{ color: 'var(--c-primary)' }}>console.groq.com/keys</a>（免費註冊）<br/>
-                  • OpenAI：<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" style={{ color: 'var(--c-primary)' }}>platform.openai.com/api-keys</a>（需充值）
-                </div>
-              </div>
             </div>
           </div>
         </div>
