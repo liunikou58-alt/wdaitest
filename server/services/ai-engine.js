@@ -45,8 +45,8 @@ try {
 const MODELS = {
   gemini: {
     id: 'gemini',
-    name: 'Google Gemini 2.0 Flash',
-    model: 'gemini-2.0-flash',
+    name: 'Google Gemini 2.5 Flash',
+    model: 'gemini-2.5-flash',
     layer: 1,
     speed: '極快',
     cost: '免費額度大',
@@ -125,10 +125,19 @@ async function callAI(prompt, options = {}) {
         ? `${options.systemPrompt}\n\n${prompt}`
         : prompt;
 
-      const res = await geminiModel.generateContent({
-        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        generationConfig: { temperature, maxOutputTokens: maxTokens },
-      });
+      // Gemini 2.5 思考模型可能需要較長時間，設定 120 秒 timeout
+      const timeoutMs = options.timeout || 120000;
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error(`Gemini 回應超時 (${timeoutMs/1000}秒)`)), timeoutMs)
+      );
+
+      const res = await Promise.race([
+        geminiModel.generateContent({
+          contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+          generationConfig: { temperature, maxOutputTokens: maxTokens },
+        }),
+        timeoutPromise,
+      ]);
 
       const text = res.response.text();
       const candidate = res.response.candidates?.[0];

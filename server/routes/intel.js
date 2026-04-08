@@ -179,7 +179,7 @@ function getDefaultBids(keyword) {
 }
 
 // ============================================
-// AI 匹配度計算（用 Groq）
+// AI 匹配度計算（透過 autoRoute，優先使用 Gemini 2.5 Flash）
 // ============================================
 async function aiMatchScore(bid, companyKeywords, competitors) {
   try {
