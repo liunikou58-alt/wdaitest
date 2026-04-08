@@ -35,8 +35,8 @@ if (!GLOBAL_KEY && GEMINI_KEYS.length === 0) {
 const clientCache = new Map();  // cacheKey → { client, model }
 
 const PRIMARY_MODEL = 'gemini-2.5-flash';
-const FALLBACK_MODEL = 'gemini-2.5-flash';  // 只有此模型可用，不降級
-const FALLBACK_AFTER_RETRIES = 99;  // 不自動降級（其他模型不可用）
+const FALLBACK_MODEL = 'gemini-2.0-flash';  // 2.5 限流時降級到 2.0
+const FALLBACK_AFTER_RETRIES = 3;  // 重試 3 次後自動降級
 
 function getGeminiClient(apiKey, modelName = PRIMARY_MODEL) {
   const cacheKey = `${apiKey}:${modelName}`;
@@ -145,7 +145,13 @@ async function _callAI_inner(prompt, options, apiKey, keyLabel) {
   const _retryAttempt = options._retryAttempt || 0;
   const MAX_RETRIES = 8;  // 放慢速率後可以多試幾次
 
-  const { model: geminiModel, modelName } = getGeminiClient(apiKey, PRIMARY_MODEL);
+  // 超過 FALLBACK_AFTER_RETRIES 次重試後自動降級到 2.0-flash
+  const useModel = (_retryAttempt >= FALLBACK_AFTER_RETRIES && FALLBACK_MODEL !== PRIMARY_MODEL)
+    ? FALLBACK_MODEL : PRIMARY_MODEL;
+  const { model: geminiModel, modelName } = getGeminiClient(apiKey, useModel);
+  if (_retryAttempt === FALLBACK_AFTER_RETRIES && useModel === FALLBACK_MODEL) {
+    console.log(`[AI:${keyLabel}] 🔄 降級模型: ${PRIMARY_MODEL} → ${FALLBACK_MODEL}`);
+  }
   const temperature = options.temperature || 0.3;
   const maxTokens = options.maxTokens || 8192;
   const stats = getUsage(keyLabel);
